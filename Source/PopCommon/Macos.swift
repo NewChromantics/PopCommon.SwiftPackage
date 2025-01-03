@@ -8,7 +8,7 @@ import SwiftUI
 
 #if canImport(UIKit)//ios
 #else
-typealias UIImage = NSImage
+public typealias UIImage = NSImage
 #endif
 
 
