@@ -5,7 +5,7 @@
 extension String
 {
 	//	returns suffix if it exists
-	func suffix(after:String) -> String?
+	public func suffix(after:String) -> String?
 	{
 		if !self.starts(with: after)
 		{
