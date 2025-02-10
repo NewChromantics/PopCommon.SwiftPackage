@@ -32,6 +32,10 @@ extension Array
 {
 	public func splitArray(maxPerChunk:Int) -> [[Self.Element]]
 	{
+		if self.count == 0
+		{
+			return []
+		}
 		let maxPerChunkf = Double(Swift.max(Int(1),maxPerChunk))
 		let chunksf = Double(self.count) / maxPerChunkf
 		let chunks = Swift.max( 1, ceil(chunksf) )
