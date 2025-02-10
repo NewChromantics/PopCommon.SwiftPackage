@@ -33,8 +33,8 @@ extension Array
 	{
 		let maxPerChunkf = Double(Swift.max(Int(1),maxPerChunk))
 		let chunksf = Double(self.count) / maxPerChunkf
-		let chunks = Swift.max( 1, ceil(chunksf) )
-		let elementsPerChunk = Int( ceil( Double(self.count) / chunks ) )
+		let chunks = Swift.max( 1, Swift.ceil(chunksf) )
+		let elementsPerChunk = Int( Swift.ceil( Double(self.count) / chunks ) )
 		
 		let chunkedArray = stride(from: 0, to: self.count, by: elementsPerChunk).map 
 		{
