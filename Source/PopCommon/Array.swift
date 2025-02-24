@@ -51,3 +51,19 @@ extension Array
 		return chunkedArray
 	}
 }
+
+//	remove first element if present
+extension Array
+{
+	public mutating func popFirst() -> Self.Element?
+	{
+		let first = self.first
+		guard let first else
+		{
+			return nil
+		}
+		self.removeFirst()
+		return first
+	}
+}
+
