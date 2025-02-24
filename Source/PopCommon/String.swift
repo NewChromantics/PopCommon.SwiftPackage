@@ -15,5 +15,17 @@ extension String
 		let Suffix = String( self.suffix(self.count - after.count) )
 		return Suffix
 	}
-}
 
+	//	returns string without this suffix
+	//	api named to match .trimPrefix
+	public func trimSuffix(_ suffix:String) -> String
+	{
+		if !self.hasSuffix(suffix)
+		{
+			return self
+		}
+		
+		let prefix = self.dropLast(suffix.count)
+		return String(prefix)
+	}
+}
