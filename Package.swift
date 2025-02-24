@@ -19,13 +19,17 @@ let package = Package(
 		.library(
 			name: "PopCommon",
 			targets: [
-				"PopCommon"
+				"PopCommon","PopCommonObjc"
 			]),
 	],
 	targets: [
 
 		.target(
 			name: "PopCommon",
+			dependencies: []
+		),
+		.target(
+			name: "PopCommonObjc",
 			dependencies: []
 		)
 	]
