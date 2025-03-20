@@ -6,6 +6,10 @@ open class AudioPlayer : ObservableObject
 {
 	var AudioPlayerCache = [String:AVAudioPlayer]()
 	
+	public init()
+	{
+	}
+	
 	func GetAudioPlayer(assetName:String,assetExtension:String) throws -> AVAudioPlayer
 	{
 		let key = "\(assetName).\(assetExtension)"
