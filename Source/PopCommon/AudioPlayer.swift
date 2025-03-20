@@ -2,7 +2,7 @@ import SwiftUI
 import AVFAudio
 
 
-public class AudioPlayer : ObservableObject
+open class AudioPlayer : ObservableObject
 {
 	var AudioPlayerCache = [String:AVAudioPlayer]()
 	
