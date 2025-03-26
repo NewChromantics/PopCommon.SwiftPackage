@@ -1,7 +1,7 @@
 import SwiftUI
 
 //	You know the public will demand it.
-typealias SemVer : SemanticVersion
+typealias SemVer = SemanticVersion
 
 
 public struct SemanticVersion : CustomStringConvertible
