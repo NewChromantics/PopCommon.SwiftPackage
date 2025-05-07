@@ -1,7 +1,7 @@
 import SwiftUI
 
 
-struct TabbedView<TabData,TabKey:Hashable&Identifiable,ContentView: View,TabView: View,NoContentView: View> : View
+public struct TabbedView<TabData,TabKey:Hashable&Identifiable,ContentView: View,TabView: View,NoContentView: View> : View
 {
 	//	todo: make this dictionary type generic
 	var tabData : [TabKey:TabData]
@@ -21,7 +21,17 @@ struct TabbedView<TabData,TabKey:Hashable&Identifiable,ContentView: View,TabView
 	@ViewBuilder var tabView: (_ label:TabKey,_ isActive:Bool) -> TabView
 	@ViewBuilder var noContentView: () -> NoContentView
 	
-	var body: some View
+	public init(tabData:[TabKey:TabData],hideTabsWhenOneOption: Bool=false,content:@escaping(_:TabKey,_:TabData)->ContentView, tabView:@escaping(_:TabKey,_:Bool)->TabView, noContentView: @escaping()->NoContentView)
+	{
+		self.content = content
+		self.tabView = tabView
+		self.noContentView = noContentView
+		self.tabData = tabData
+		self.selectedTab = selectedTab
+		self.hideTabsWhenOneOption = hideTabsWhenOneOption
+	}
+	
+	public var body: some View
 	{
 		if tabKeys.isEmpty
 		{
