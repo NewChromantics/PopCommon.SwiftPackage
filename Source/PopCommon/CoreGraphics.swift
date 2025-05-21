@@ -70,10 +70,10 @@ extension CGRect
 		let parentRect = CGRect( origin: CGPoint(x:0,y:0), size: parentSize )
 		
 		//	normalise self
-		var left = range( parentRect.left, parentRect.right, value: self.left )
-		var right = range( parentRect.left, parentRect.right, value: self.right )
-		var top = range( parentRect.top, parentRect.bottom, value: self.top )
-		var bottom = range( parentRect.top, parentRect.bottom, value: self.bottom )
+		let left = range( parentRect.left, parentRect.right, value: self.left )
+		let right = range( parentRect.left, parentRect.right, value: self.right )
+		let top = range( parentRect.top, parentRect.bottom, value: self.top )
+		let bottom = range( parentRect.top, parentRect.bottom, value: self.bottom )
 		
 		//	position inside new parent
 		let NewTopLeft = fitSize.GetUnnormalisedPoint( normalised:CGPoint(x:left,y:top) )

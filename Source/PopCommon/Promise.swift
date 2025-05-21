@@ -26,7 +26,7 @@ public class Promise<T>
 		while ( true )
 		{
 			//	throws when task cancelled
-			await try Task.sleep(nanoseconds: 1_000_000)
+			try await Task.sleep(nanoseconds: 1_000_000)
 			if let result
 			{
 				return result

@@ -60,7 +60,7 @@ public struct ARSessionPolyfill
 		{
 			while ( !Task.isCancelled )
 			{
-				await try! Task.sleep(nanoseconds: 10000000)
+				try await Task.sleep(nanoseconds: 10000000)
 				let frame = ARFramePolyfill()
 				delegate?.session(self, didUpdate: frame)
 			}
