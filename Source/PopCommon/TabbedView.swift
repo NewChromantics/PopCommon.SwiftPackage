@@ -61,10 +61,12 @@ public struct TabbedView<TabData,TabKey:Hashable&Identifiable,ContentView: View,
 						//let tabContent = tabData[tabKey]
 						let isActiveTab = tabKey == activeTab
 						tabView( tabKey, isActiveTab )
+						#if !os(tvOS)
 							.onTapGesture
 						{
 							selectedTab = tabKey
 						}
+						#endif
 					}
 				}
 				

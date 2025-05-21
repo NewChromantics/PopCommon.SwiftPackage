@@ -19,7 +19,9 @@ public class Clipboard
 {
 	public static func set(text: String)
 	{
-#if canImport(UIKit)
+#if os(tvOS)
+		//	no clipboard
+#elseif canImport(UIKit)
 		UIPasteboard.general.string = text
 #else
 		//	what happens if we dont clear?
@@ -31,7 +33,9 @@ public class Clipboard
 	//@available(macOS 10.13, *)
 	public static func set(url: URL) 
 	{
-#if canImport(UIKit)
+#if os(tvOS)
+		//	no clipboard
+#elseif canImport(UIKit)
 		UIPasteboard.general.url = url
 #else
 		//	what happens if we dont clear?
@@ -55,7 +59,9 @@ public class Clipboard
 	*/
 	public static func clear()
 	{
-#if canImport(UIKit)
+#if os(tvOS)
+		//	no clipboard
+#elseif canImport(UIKit)
 		UIPasteboard.general.string = nil
 #else
 		UIPasteboard.general.clearContents()

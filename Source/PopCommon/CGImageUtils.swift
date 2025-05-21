@@ -10,9 +10,9 @@ func GetVideoToolboxError(_ result:OSStatus) -> OSStatus
 public func PixelBufferToSwiftImage(_ pixelBuffer:CVPixelBuffer) async throws -> Image
 {
 	let cg = try await PixelBufferToCGImage(pixelBuffer)
-#if os(iOS)
+#if canImport(UIKit)
 	let uiimage = UIImage(cgImage:cg)
-	return try Image(uiImage: uiimage )
+	return Image(uiImage: uiimage )
 #else
 	//	zero = auto size
 	let uiimage = NSImage(cgImage:cg, size:.zero)
