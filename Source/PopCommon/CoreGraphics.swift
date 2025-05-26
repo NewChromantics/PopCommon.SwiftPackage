@@ -44,8 +44,18 @@ public func -(lhs: CGRect?, rhs: CGPoint?) -> CGRect?
 	return lhs.offsetBy(dx: -rhs.x, dy: -rhs.y)
 }
 
-extension CGRect
+
+
+public extension CGRect
 {
+	//	turn 0.1 inside this rect to parent space
+	func expandNormalised(_ boundsPos:CGPoint) -> CGPoint
+	{
+		let x = lerp(self.minX,self.maxX, boundsPos.x)
+		let y = lerp(self.minY,self.maxY, boundsPos.y)
+		return CGPoint(x:x,y:y)
+	}
+	
 	public var center : CGPoint
 	{
 		let x = self.origin.x + (self.width / 2.0)

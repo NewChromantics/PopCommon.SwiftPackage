@@ -2,6 +2,10 @@ import SwiftUI
 import VideoToolbox
 import Accelerate
 
+
+
+
+
 func GetVideoToolboxError(_ result:OSStatus) -> OSStatus
 {
 	return result
@@ -21,7 +25,7 @@ public func PixelBufferToSwiftImage(_ pixelBuffer:CVPixelBuffer) async throws ->
 }
 
 
-public func PixelBufferToCGImage(_ pb:CVPixelBuffer) async throws -> CGImage
+public func PixelBufferToCGImage(_ pb:CVPixelBuffer) throws -> CGImage
 {
 	var cgImage: CGImage?
 	
@@ -199,3 +203,223 @@ public func Create1x1CVPixelBuffer(colour:CGColor) throws -> CVPixelBuffer
 	return pixelBuffer
 }
 
+
+
+//	use same Image(uiImage:) constructor on macos & ios
+public extension Image
+{
+	init(cgImage:CGImage)
+	{
+#if canImport(UIKit)//ios
+		self.init(uiImage:UIImage(cgImage: cgImage))
+#else
+		self.init(nsImage:NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height) ))
+#endif
+	}
+	
+	//	use same Image(uiImage:) constructor on macos & ios
+#if os(macOS)
+	init(uiImage:UIImage)
+	{
+		self.init(nsImage:uiImage)
+	}
+#endif
+}
+
+public extension UIImage
+{
+#if !canImport(UIKit)//ios
+	//	mac doesnt have a single-arg cgimage constructor
+	convenience init(cgImage:CGImage)
+	{
+		self.init(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+	}
+#endif
+}
+
+
+#if canImport(UIKit)//ios
+#else
+
+//	accessor missing in macos
+public extension UIImage
+{
+	var cgImage : CGImage?
+	{
+		return self.cgImage(forProposedRect: nil, context: nil, hints: nil)
+	}
+}
+
+public extension Image
+{
+	
+}
+
+#endif
+
+
+extension CGImage
+{
+	/*
+	public func resize(withSize targetSize: CGSize) -> CGImage?
+	{
+		let targetWidth = Int(targetSize.width)
+		let targetHeight = Int(targetSize.height)
+		guard let context = CGContext.ARGBBitmapContext(width:targetWidth, height:targetHeight, withAlpha: true) else
+		{
+			return nil
+		}
+		context.draw(self, in: CGRect(x:0, y:0, width:targetWidth, height:targetHeight))
+		guard let outputImage = context.makeImage() else
+		{
+			return nil
+		}
+		let outIsArgb = outputImage.alphaInfo == .first || outputImage.alphaInfo == .premultipliedFirst
+		return outputImage
+	}
+	
+	public func resizeWithAccelerate(withSize targetSize: CGSize) -> CGImage?
+	{
+		let targetWidth = Int(targetSize.width)
+		let targetHeight = Int(targetSize.height)
+		guard let context = CGContext.ARGBBitmapContext(width:targetWidth, height:targetHeight, withAlpha: true) else
+		{
+			return nil
+		}
+		guard let contextData = context.data else
+		{
+			return nil
+		}
+		
+		var src = try! vImage_Buffer(cgImage: self)
+		var dst = vImage_Buffer(data: contextData, height: vImagePixelCount(context.height), width: vImagePixelCount(context.width), rowBytes: context.bytesPerRow)
+		//let flags = vImage_Flags(kvImageHighQualityResampling)
+		let flags = vImage_Flags()
+		
+		//	this seems to have a problem of messing up ARGB & RGBA, despite both being ARGB...
+		vImageScale_ARGB8888(&src, &dst, nil, flags)
+		
+		guard let outputImage = context.makeImage() else
+		{
+			return nil
+		}
+		return outputImage
+	}
+	 
+	
+	//	Resizes the image to the given size maintaining its original aspect ratio.
+	func resizeMaintainingAspectRatio(withSize targetSize: CGSize) -> CGImage
+	{
+		let newSize: CGSize
+		let widthRatio = targetSize.width / CGFloat(self.width)
+		let heightRatio = targetSize.height / CGFloat(self.height)
+		if(widthRatio > heightRatio) {
+			newSize = CGSize(width: floor(CGFloat(self.width) * widthRatio), height: floor(CGFloat(self.height) * widthRatio))
+		} else {
+			newSize = CGSize(width: floor(CGFloat(self.width) * heightRatio), height: floor(CGFloat(self.height) * heightRatio))
+		}
+		return resize(withSize: newSize)!
+	}
+	 */
+}
+
+extension UIImage 
+{
+	/*
+	func resize(withSize targetSize: CGSize) -> UIImage 
+	{
+		//	this accellerate-based resize is a little faster, but still CPU based
+		let smallImage = self.cgImage!.resize(withSize: targetSize)
+		return UIImage(cgImage: smallImage!)
+		
+		let targetRect = CGRect( origin: .zero, size: targetSize )
+		
+#if canImport(UIKit)
+		//	https://stackoverflow.com/a/72353628/355753
+		let format = UIGraphicsImageRendererFormat(for: UITraitCollection(displayScale: 1))
+		let renderer = UIGraphicsImageRenderer(size: targetSize, format: format)
+		let img = renderer.image 
+		{ 
+			ctx in
+			draw(in:targetRect)
+		}
+		return img
+#else
+		let newImage = UIImage(size: targetSize)
+		newImage.lockFocus()
+		draw(in: CGRect(origin: .zero, size: targetSize), from: CGRect(origin: .zero, size: size), operation: .sourceOver, fraction: 1.0)
+		newImage.unlockFocus()
+		return newImage
+#endif
+	}
+	
+	//	Resizes the image to the given size maintaining its original aspect ratio.
+	func resizeMaintainingAspectRatio(withSize targetSize: CGSize) -> UIImage
+	{
+		let newSize: CGSize
+		let widthRatio = targetSize.width / size.width
+		let heightRatio = targetSize.height / size.height
+		if(widthRatio > heightRatio) {
+			newSize = CGSize(width: floor(size.width * widthRatio), height: floor(size.height * widthRatio))
+		} else {
+			newSize = CGSize(width: floor(size.width * heightRatio), height: floor(size.height * heightRatio))
+		}
+		return resize(withSize: newSize)
+	}
+	*/
+}
+
+
+public extension CGImage
+{
+	func withUnsafePixels<Result>(_ callback:(UnsafePointer<UInt8>,_ width:Int,_ height:Int,_ rowStride:Int,_ isArgb:Bool)throws->Result) throws -> Result
+	{
+		let imageCg = self
+		let alphaFirst = imageCg.alphaInfo == .first || imageCg.alphaInfo == .premultipliedFirst
+		let alphaLast = imageCg.alphaInfo == .last || imageCg.alphaInfo == .premultipliedLast
+		let isArgb = alphaFirst
+		let pixelFormat = imageCg.pixelFormatInfo
+		let bitsPerPixel = imageCg.bitsPerPixel
+		let bitsPerComponent = imageCg.bitsPerComponent
+		let bytesPerPixel = bitsPerPixel / bitsPerComponent
+		let bytesPerPixel2 = imageCg.bytesPerRow / width
+		let rowStride = imageCg.bytesPerRow / bytesPerPixel	//	some images are padded!
+		let channels = bytesPerPixel
+		let pixelData = imageCg.dataProvider!.data
+		let sourceData : UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
+		
+		return try callback( sourceData, width, height, rowStride, isArgb )
+	}
+	
+	var formatName : String 
+	{
+		let bitsPerComponent = self.bitsPerComponent
+		let bytesPerPixel = self.bitsPerPixel / bitsPerComponent
+		let channels = bytesPerPixel
+		
+		if channels == 1 && self.alphaInfo == .alphaOnly
+		{
+			return "Alpha"
+		}
+		
+		if channels == 1
+		{
+			return "Greyscale"
+		}
+		
+		let alphaFirst = self.alphaInfo == .premultipliedFirst || self.alphaInfo == .first
+		let alphaLast = self.alphaInfo == .premultipliedLast || self.alphaInfo == .last
+		let noAlpha = self.alphaInfo == .none
+		
+		if alphaFirst && channels == 4
+		{
+			return "ARGB"
+		}
+		if alphaLast && channels == 4
+		{
+			return "RGBA"
+		}
+		
+		return "\(channels)channel" + ( noAlpha ? "(no alpha)":"" )
+	}
+}

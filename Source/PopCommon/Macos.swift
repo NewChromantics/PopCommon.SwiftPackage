@@ -13,21 +13,6 @@ public typealias UIImage = NSImage
 #endif
 
 
-#if canImport(UIKit)//ios
-#else
-
-//	use same Image(uiImage:) constructor on macos & ios
-extension Image
-{
-	public init(uiImage:UIImage)
-	{
-		self.init(nsImage:uiImage)
-	}
-}
-
-#endif
-
-
 
 
 
