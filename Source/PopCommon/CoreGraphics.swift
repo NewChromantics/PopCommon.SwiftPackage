@@ -48,7 +48,7 @@ public func -(lhs: CGRect?, rhs: CGPoint?) -> CGRect?
 
 public extension CGRect
 {
-	//	turn 0.1 inside this rect to parent space
+	//	turn 0...1 inside this rect to parent space
 	func expandNormalised(_ boundsPos:CGPoint) -> CGPoint
 	{
 		let x = lerp(self.minX,self.maxX, boundsPos.x)
