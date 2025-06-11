@@ -24,6 +24,13 @@ public func PixelBufferToSwiftImage(_ pixelBuffer:CVPixelBuffer) async throws ->
 #endif
 }
 
+public extension CVPixelBuffer
+{
+	public func GetCGImage() throws -> CGImage
+	{
+		return try PixelBufferToCGImage(self)
+	}
+}
 
 public func PixelBufferToCGImage(_ pb:CVPixelBuffer) throws -> CGImage
 {
