@@ -4,6 +4,36 @@
 import CoreGraphics
 
 
+func * (lhs: CGSize, rhs: CGSize) -> CGSize {
+	.init(width: lhs.width * rhs.width, height: lhs.height * rhs.height)
+}
+
+func * (lhs: CGPoint, rhs: CGSize) -> CGPoint {
+	.init(x: lhs.x * rhs.width, y: lhs.y * rhs.height)
+}
+
+func - (lhs: CGPoint, rhs: CGFloat) -> CGPoint {
+	.init(x: lhs.x - rhs, y: lhs.y - rhs)
+}
+
+func + (lhs: CGPoint, rhs: CGPoint) -> CGPoint {
+	.init(x: lhs.x + rhs.x, y: lhs.y + rhs.y)
+}
+
+func + (lhs: CGSize, rhs: CGSize) -> CGSize {
+	.init(width: lhs.width + rhs.width, height: lhs.height + rhs.height)
+}
+
+func / (lhs: CGSize, rhs: CGSize) -> CGSize {
+	.init(width: lhs.width / rhs.width, height: lhs.height / rhs.height)
+}
+
+extension CGSize {
+	var toPoint: CGPoint { .init(x: width, y: height) }
+	var half: CGSize { .init(width: width/2, height: height/2) }
+}
+
+
 extension CGSize
 {
 	public var asCgPoint : CGPoint	{	CGPoint(x:self.width,y:self.height)	}
@@ -11,6 +41,8 @@ extension CGSize
 
 extension CGPoint
 {
+	public var asCgSize : CGSize	{	CGSize(width:self.x,height:self.y)	}
+
 	public static func +=(lhs: inout CGPoint, rhs: CGPoint)
 	{
 		lhs.x += rhs.x
@@ -48,14 +80,6 @@ public func -(lhs: CGRect?, rhs: CGPoint?) -> CGRect?
 
 public extension CGRect
 {
-	//	turn 0...1 inside this rect to parent space
-	func expandNormalised(_ boundsPos:CGPoint) -> CGPoint
-	{
-		let x = lerp(self.minX,self.maxX, boundsPos.x)
-		let y = lerp(self.minY,self.maxY, boundsPos.y)
-		return CGPoint(x:x,y:y)
-	}
-	
 	public var center : CGPoint
 	{
 		let x = self.origin.x + (self.width / 2.0)
@@ -67,12 +91,38 @@ public extension CGRect
 	public var right : CGFloat	{	return self.origin.x + self.size.width	}
 	public var top : CGFloat	{	return self.origin.y	}
 	public var bottom : CGFloat	{	return self.origin.y + self.size.height	}
+	public var topLeft : CGPoint	{	return self.origin	}
+	public var bottomRight : CGPoint	{	return CGPoint(x:right,y:bottom)	}
+	
+	//	turn 0...1 inside this rect to parent space
+	func expandNormalised(_ boundsPos:CGPoint) -> CGPoint
+	{
+		let x = lerp(self.minX,self.maxX, boundsPos.x)
+		let y = lerp(self.minY,self.maxY, boundsPos.y)
+		return CGPoint(x:x,y:y)
+	}
 	
 	public func GetUnnormalisedPoint(normalised:CGPoint) -> CGPoint
 	{
 		let x = self.left + (normalised.x * self.width)
 		let y = self.top + (normalised.y * self.height)
 		return CGPoint( x:x, y:y )
+	}
+	
+	public func GetNormalisedPoint(local:CGPoint) -> CGPoint
+	{
+		let x = range( self.left, self.right, value: local.x )
+		let y = range( self.top, self.bottom, value: local.y )
+		return CGPoint( x:x, y:y )
+	}
+	
+	public func GetUnnormalised(normalised:CGRect) -> CGRect
+	{
+		let topLeft = GetUnnormalisedPoint(normalised: normalised.topLeft )
+		let bottomRight = GetUnnormalisedPoint(normalised: normalised.bottomRight )
+		let width = bottomRight.x - topLeft.x
+		let height = bottomRight.y - topLeft.y
+		return CGRect( origin:topLeft, size:CGSize(width:width,height:height) )
 	}
 	
 	public func resizeToFit(parentSize:CGSize,fitSize:CGRect) -> CGRect
