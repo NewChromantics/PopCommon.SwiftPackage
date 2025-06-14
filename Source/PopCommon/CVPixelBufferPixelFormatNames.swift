@@ -1,5 +1,32 @@
 import CoreMedia
 
+
+public func CVGetErrorString(error:CVReturn) -> String
+{
+	switch error 
+	{
+		case kCVReturnSuccess:	return "kCVReturnSuccess"
+		case kCVReturnInvalidArgument: return "kCVReturnInvalidArgument"
+		case kCVReturnAllocationFailed: return "kCVReturnAllocationFailed"
+		case kCVReturnUnsupported: return "kCVReturnUnsupported"
+		case kCVReturnInvalidDisplay: return "kCVReturnInvalidDisplay"
+		case kCVReturnDisplayLinkAlreadyRunning: return "kCVReturnDisplayLinkAlreadyRunning"
+		case kCVReturnDisplayLinkNotRunning: return "kCVReturnDisplayLinkNotRunning"
+		case kCVReturnDisplayLinkCallbacksNotSet: return "kCVReturnDisplayLinkCallbacksNotSet"
+		case kCVReturnInvalidPixelFormat: return "kCVReturnInvalidPixelFormat"
+		case kCVReturnInvalidSize: return "kCVReturnInvalidSize"
+		case kCVReturnInvalidPixelBufferAttributes: return "kCVReturnInvalidPixelBufferAttributes"
+		case kCVReturnPixelBufferNotOpenGLCompatible: return "kCVReturnPixelBufferNotOpenGLCompatible"
+		case kCVReturnPixelBufferNotMetalCompatible: return "kCVReturnPixelBufferNotMetalCompatible"
+		case kCVReturnWouldExceedAllocationThreshold: return "kCVReturnWouldExceedAllocationThreshold"
+		case kCVReturnPoolAllocationFailed: return "kCVReturnPoolAllocationFailed"
+		case kCVReturnInvalidPoolAttributes: return "kCVReturnInvalidPoolAttributes"
+		case kCVReturnRetry: return "kCVReturnRetry"
+		default: return "\(error)"
+	}
+}
+
+
 public func CVPixelBufferGetPixelFormatName(pixelBuffer: CVPixelBuffer) -> String {
 	let p = CVPixelBufferGetPixelFormatType(pixelBuffer)
 	return CVPixelBufferGetPixelFormatName(p)
@@ -65,10 +92,11 @@ public func CVPixelBufferGetPixelFormatName(_ format: CMPixelFormatType) -> Stri
     }
 }
 
-extension CVPixelBuffer {
-    
-    func pixelFormatName() -> String {
-        let p = CVPixelBufferGetPixelFormatType(self)
+extension CVPixelBuffer 
+{
+	func pixelFormatName() -> String 
+	{
+		let p = CVPixelBufferGetPixelFormatType(self)
 		return CVPixelBufferGetPixelFormatName(p)
-    }
+	}
 }

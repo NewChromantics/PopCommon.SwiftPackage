@@ -30,6 +30,10 @@ public extension CVPixelBuffer
 	{
 		return try PixelBufferToCGImage(self)
 	}
+	
+	public var width : Int				{	CVPixelBufferGetWidth(self)	}
+	public var height : Int				{	CVPixelBufferGetHeight(self)	}
+	public var pixelFormat : OSType		{	CVPixelBufferGetPixelFormatType(self)	}
 }
 
 public func PixelBufferToCGImage(_ pb:CVPixelBuffer) throws -> CGImage
@@ -154,6 +158,47 @@ extension CVPixelBuffer
 			}
 		}
 		CVPixelBufferUnlockBaseAddress(self, [])
+	}
+	
+	public func Resize(width:Int,height:Int,forceOutputFormat:OSType?=nil) throws -> CVPixelBuffer
+	{
+		let ciImage = CIImage(cvPixelBuffer: self)
+		let sourceDimensions = ciImage.extent
+		
+		let scaleFilter = CIFilter.lanczosScaleTransform()
+		scaleFilter.inputImage = ciImage
+
+		//	aspectRatio = horizontal scaling factor
+		//	so, scale to height, then squash width 
+		scaleFilter.scale = Float(height) / Float(sourceDimensions.height)
+		let newWidth = scaleFilter.scale * Float(sourceDimensions.width)
+		scaleFilter.aspectRatio = Float(width) / Float(newWidth)
+		
+		guard let outputImage = scaleFilter.outputImage else 
+		{
+			throw RuntimeError("CIFilter scale failed to produce output image") 
+		}
+		
+		let outputFormat = forceOutputFormat ?? self.pixelFormat
+		
+		// Create a new CVPixelBuffer
+		var outputPixelBuffer : CVPixelBuffer?
+		let status = CVPixelBufferCreate(kCFAllocatorDefault, width, height, outputFormat, nil, &outputPixelBuffer)
+		
+		if status != kCVReturnSuccess
+		{
+			throw RuntimeError("CVPixelBufferCreate failed to create buffer: \(CVGetErrorString(error:status))")
+		}
+		guard let buffer = outputPixelBuffer else
+		{
+			throw RuntimeError("CVPixelBufferCreate succeeded but produced null buffer")
+		}
+
+		//	Render the CIImage into the new CVPixelBuffer
+		let context = CIContext()
+		context.render(outputImage, to: buffer)
+		
+		return buffer
 	}
 }
 
