@@ -3,7 +3,82 @@ import VideoToolbox
 import Accelerate
 
 
+public struct CGImageError : LocalizedError
+{
+	let description: String
+	
+	public init(_ description: String) {
+		self.description = description
+	}
+	
+	public var errorDescription: String? {
+		description
+	}
+}
 
+
+
+extension CGImage
+{
+	public static func fromRgbBuffer(_ rgbBuffer:inout[UInt8],width:Int,height:Int) throws -> CGImage
+	{
+		var convert = 
+		{
+			(rgb:inout vImage_Buffer,rgba:inout vImage_Buffer) in
+			let alphaBuffer : UnsafePointer<vImage_Buffer>? = nil
+			let alpha = Pixel_8(255)
+			let premultiply = false	//	true performs {r = (a * r + 127) / 255}
+			let flags = vImage_Flags(kvImageDoNotTile)
+			let error = vImageConvert_RGB888toRGBA8888( &rgb, alphaBuffer, alpha, &rgba, premultiply, flags )
+			if error != kvImageNoError
+			{
+				throw CGImageError("Some RGB to RGBA error")
+			}
+		}
+		
+		
+		//	need to convert to RGBA for coregraphics
+		var rgbaBuffer = [UInt8](repeating: 0, count: width*height*4)
+		try rgbBuffer.withUnsafeMutableBytes
+		{
+			rgbBufferPointer in 
+			try rgbaBuffer.withUnsafeMutableBytes
+			{
+				rgbaBufferPointer in
+				var rgbImage = vImage_Buffer( data:rgbBufferPointer.baseAddress!, height:vImagePixelCount(height), width:vImagePixelCount(width), rowBytes: 3*width )
+				var rgbaImage = vImage_Buffer( data:rgbaBufferPointer.baseAddress!, height:vImagePixelCount(height), width:vImagePixelCount(width), rowBytes: 4*width )
+				
+				try convert( &rgbImage, &rgbaImage )
+			}
+		}
+		
+		
+		let bytesPerPixel = 4
+		let bytesPerRow = bytesPerPixel * width
+		let bitsPerComponent = 8
+		
+		
+		let colorSpace = CGColorSpaceCreateDeviceRGB()
+		let alpha = CGImageAlphaInfo.premultipliedLast.rawValue
+		
+		let cgimage = try rgbaBuffer.withUnsafeMutableBytes
+		{
+			rgbaBufferPointer in
+			guard let context = CGContext(data: rgbaBufferPointer.baseAddress!, width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: alpha) else
+			{
+				throw CGImageError("Failed to create cg context")
+			}
+			
+			guard let cgImage = context.makeImage() else
+			{
+				throw CGImageError("Failed to create cg image")
+			}
+			return cgImage
+		}
+		
+		return cgimage
+	}
+}
 
 
 func GetVideoToolboxError(_ result:OSStatus) -> OSStatus
@@ -11,9 +86,9 @@ func GetVideoToolboxError(_ result:OSStatus) -> OSStatus
 	return result
 }
 
-public func PixelBufferToSwiftImage(_ pixelBuffer:CVPixelBuffer) async throws -> Image
+public func PixelBufferToSwiftImage(_ pixelBuffer:CVPixelBuffer) throws -> Image
 {
-	let cg = try await PixelBufferToCGImage(pixelBuffer)
+	let cg = try PixelBufferToCGImage(pixelBuffer)
 #if canImport(UIKit)
 	let uiimage = UIImage(cgImage:cg)
 	return Image(uiImage: uiimage )
@@ -26,14 +101,17 @@ public func PixelBufferToSwiftImage(_ pixelBuffer:CVPixelBuffer) async throws ->
 
 public extension CVPixelBuffer
 {
-	public func GetCGImage() throws -> CGImage
+	var cgImage : CGImage 
 	{
-		return try PixelBufferToCGImage(self)
+		get throws
+		{
+			return try PixelBufferToCGImage(self)
+		}
 	}
 	
-	public var width : Int				{	CVPixelBufferGetWidth(self)	}
-	public var height : Int				{	CVPixelBufferGetHeight(self)	}
-	public var pixelFormat : OSType		{	CVPixelBufferGetPixelFormatType(self)	}
+	var width : Int				{	CVPixelBufferGetWidth(self)	}
+	var height : Int				{	CVPixelBufferGetHeight(self)	}
+	var pixelFormat : OSType		{	CVPixelBufferGetPixelFormatType(self)	}
 }
 
 public func PixelBufferToCGImage(_ pb:CVPixelBuffer) throws -> CGImage
@@ -290,25 +368,6 @@ public extension UIImage
 }
 
 
-#if canImport(UIKit)//ios
-#else
-
-//	accessor missing in macos
-public extension UIImage
-{
-	var cgImage : CGImage?
-	{
-		return self.cgImage(forProposedRect: nil, context: nil, hints: nil)
-	}
-}
-
-public extension Image
-{
-	
-}
-
-#endif
-
 
 extension CGImage
 {
@@ -374,53 +433,6 @@ extension CGImage
 	}
 	 */
 }
-
-extension UIImage 
-{
-	/*
-	func resize(withSize targetSize: CGSize) -> UIImage 
-	{
-		//	this accellerate-based resize is a little faster, but still CPU based
-		let smallImage = self.cgImage!.resize(withSize: targetSize)
-		return UIImage(cgImage: smallImage!)
-		
-		let targetRect = CGRect( origin: .zero, size: targetSize )
-		
-#if canImport(UIKit)
-		//	https://stackoverflow.com/a/72353628/355753
-		let format = UIGraphicsImageRendererFormat(for: UITraitCollection(displayScale: 1))
-		let renderer = UIGraphicsImageRenderer(size: targetSize, format: format)
-		let img = renderer.image 
-		{ 
-			ctx in
-			draw(in:targetRect)
-		}
-		return img
-#else
-		let newImage = UIImage(size: targetSize)
-		newImage.lockFocus()
-		draw(in: CGRect(origin: .zero, size: targetSize), from: CGRect(origin: .zero, size: size), operation: .sourceOver, fraction: 1.0)
-		newImage.unlockFocus()
-		return newImage
-#endif
-	}
-	
-	//	Resizes the image to the given size maintaining its original aspect ratio.
-	func resizeMaintainingAspectRatio(withSize targetSize: CGSize) -> UIImage
-	{
-		let newSize: CGSize
-		let widthRatio = targetSize.width / size.width
-		let heightRatio = targetSize.height / size.height
-		if(widthRatio > heightRatio) {
-			newSize = CGSize(width: floor(size.width * widthRatio), height: floor(size.height * widthRatio))
-		} else {
-			newSize = CGSize(width: floor(size.width * heightRatio), height: floor(size.height * heightRatio))
-		}
-		return resize(withSize: newSize)
-	}
-	*/
-}
-
 
 public extension CGImage
 {

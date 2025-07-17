@@ -1,8 +1,7 @@
 import CoreVideo
-
+import simd
 
 #if !canImport(ARKit)
-public typealias simd_float4x4 = float4x4
 public typealias ARSession = ARSessionPolyfill
 public typealias ARWorldTrackingConfiguration = ARWorldTrackingConfigurationPolyfill
 public typealias ARCamera = ARCameraPolyfill
