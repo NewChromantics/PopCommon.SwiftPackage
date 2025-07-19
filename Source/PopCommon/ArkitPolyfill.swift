@@ -73,10 +73,11 @@ public struct ARSessionPolyfill
 
 public struct ARCameraPolyfill
 {
-	public var transform = float4x4()
-	public var projectionMatrix = float4x4()
+	public var transform = simd_float4x4()
+	public var projectionMatrix = simd_float4x4()
 	
-	public init(transform: float4x4 = float4x4(), projectionMatrix: float4x4 = float4x4()) {
+	public init(transform:simd_float4x4 = .identity, projectionMatrix:simd_float4x4 = .identity) 
+	{
 		self.transform = transform
 		self.projectionMatrix = projectionMatrix
 	}
