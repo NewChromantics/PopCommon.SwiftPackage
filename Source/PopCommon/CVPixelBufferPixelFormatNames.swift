@@ -92,9 +92,9 @@ public func CVPixelBufferGetPixelFormatName(_ format: CMPixelFormatType) -> Stri
     }
 }
 
-extension CVPixelBuffer 
+public extension CVPixelBuffer 
 {
-	func pixelFormatName() -> String 
+	var pixelFormatName : String 
 	{
 		let p = CVPixelBufferGetPixelFormatType(self)
 		return CVPixelBufferGetPixelFormatName(p)
