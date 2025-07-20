@@ -288,27 +288,35 @@ extension CVPixelBuffer
 */
 public func Create1x1CVPixelBuffer(colour:CGColor) throws -> CVPixelBuffer
 {
+	return try CreateFilledCVPixelBuffer(colour: colour, width: 1, height: 1)
+}
+
+public func CreateFilledCVPixelBuffer(colour:CGColor,width:Int,height:Int) throws -> CVPixelBuffer
+{
 	let colourComponents = colour.components ?? [1,0,0,1]
 	let colourBytes = colourComponents.map{ UInt8($0 * 255.0) }
 	let format = kCVPixelFormatType_32BGRA
-	let width = 1
-	let height = 1
 	/*
-	//let cfnumPointer = UnsafeMutablePointer<UnsafeRawPointer>.allocate(capacity: 1)
-	//let cfnum = CFNumberCreate(kCFAllocatorDefault, .intType, cfnumPointer)
-	//let keys: [CFString] = [kCVPixelBufferCGImageCompatibilityKey, kCVPixelBufferCGBitmapContextCompatibilityKey, kCVPixelBufferBytesPerRowAlignmentKey]
-	let values: [CFTypeRef] = [kCFBooleanTrue, kCFBooleanTrue, cfnum!]
-	let keysPointer = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: 1)
-	let valuesPointer =  UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: 1)
-	keysPointer.initialize(to: keys)
-	valuesPointer.initialize(to: values)
-	let options = CFDictionaryCreate(kCFAllocatorDefault, keysPointer, valuesPointer, keys.count, nil, nil)
+	 //let cfnumPointer = UnsafeMutablePointer<UnsafeRawPointer>.allocate(capacity: 1)
+	 //let cfnum = CFNumberCreate(kCFAllocatorDefault, .intType, cfnumPointer)
+	 //let keys: [CFString] = [kCVPixelBufferCGImageCompatibilityKey, kCVPixelBufferCGBitmapContextCompatibilityKey, kCVPixelBufferBytesPerRowAlignmentKey]
+	 let values: [CFTypeRef] = [kCFBooleanTrue, kCFBooleanTrue, cfnum!]
+	 let keysPointer = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: 1)
+	 let valuesPointer =  UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: 1)
+	 keysPointer.initialize(to: keys)
+	 valuesPointer.initialize(to: values)
+	 let options = CFDictionaryCreate(kCFAllocatorDefault, keysPointer, valuesPointer, keys.count, nil, nil)
 	 */
-	let options : CFDictionary? = nil
 	var pixelBuffer : CVPixelBuffer?
 	
+	//	allow use in metal
+	let options : [CFString:Any] = 
+	[	
+		kCVPixelBufferMetalCompatibilityKey:true
+	]
+	
 	// if pxbuffer = nil, you will get status = -6661
-	let CreateStatus : OSStatus = CVPixelBufferCreate(kCFAllocatorDefault, width, height, format, options, &pixelBuffer )
+	let CreateStatus : OSStatus = CVPixelBufferCreate(kCFAllocatorDefault, width, height, format, options as CFDictionary, &pixelBuffer )
 	if CreateStatus != 0
 	{
 		throw RuntimeError("Failed to create \(width)x\(height)(\(format)) pixel buffer; \(GetVideoToolboxError(CreateStatus))")
@@ -329,10 +337,9 @@ public func Create1x1CVPixelBuffer(colour:CGColor) throws -> CVPixelBuffer
 			bytes[i] = colourBytes[i%colourBytes.count]
 		}
 	}
-
+	
 	return pixelBuffer
 }
-
 
 
 //	use same Image(uiImage:) constructor on macos & ios
