@@ -22,6 +22,7 @@ public func CVGetErrorString(error:CVReturn) -> String
 		case kCVReturnPoolAllocationFailed: return "kCVReturnPoolAllocationFailed"
 		case kCVReturnInvalidPoolAttributes: return "kCVReturnInvalidPoolAttributes"
 		case kCVReturnRetry: return "kCVReturnRetry"
+		case kCVReturnError:	return "kCVReturnError(Undefined error)"	//	unspecified error
 		default: return "\(error)"
 	}
 }
