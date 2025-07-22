@@ -7,6 +7,7 @@ public typealias ARWorldTrackingConfiguration = ARWorldTrackingConfigurationPoly
 public typealias ARCamera = ARCameraPolyfill
 public typealias ARFrame = ARFramePolyfill
 public typealias ARSessionDelegate = ARSessionDelegatePolyfill
+public typealias ARSceneDepth = ARSceneDepthPolyfill
 #endif
 
 public struct float4x4
@@ -73,8 +74,10 @@ public struct ARSessionPolyfill
 
 public struct ARCameraPolyfill
 {
-	public var transform = simd_float4x4()
-	public var projectionMatrix = simd_float4x4()
+	public var transform = simd_float4x4.identity
+	public var projectionMatrix = simd_float4x4.identity
+	public var intrinsics = simd_float3x3.identity
+	
 	
 	public init(transform:simd_float4x4 = .identity, projectionMatrix:simd_float4x4 = .identity) 
 	{
@@ -85,9 +88,21 @@ public struct ARCameraPolyfill
 
 public struct ARWorldTrackingConfigurationPolyfill
 {
+	public enum FrameSemantic
+	{
+		case sceneDepth
+	}
+	
+	public var frameSemantics : FrameSemantic = .sceneDepth
+	
 	public init()
 	{
 	}
+}
+
+public struct ARSceneDepthPolyfill
+{
+	public var depthMap : CVPixelBuffer?
 }
 
 public struct ARFramePolyfill
@@ -96,6 +111,7 @@ public struct ARFramePolyfill
 	public var capturedDepthDataTimestamp = 123
 	public var camera = ARCameraPolyfill()
 	public var capturedImage : CVPixelBuffer
+	public var sceneDepth : ARSceneDepthPolyfill?
 	
 	public init()
 	{

@@ -126,17 +126,28 @@ public extension CVPixelBuffer
 	
 	var planeCount : Int
 	{
+		if !CVPixelBufferIsPlanar(self)
+		{
+			return 1
+		}
 		return CVPixelBufferGetPlaneCount(self)
 	}
 	
 	var yuvColourMatrixKey : String?
 	{
-		let attachmentsDict = CVBufferCopyAttachments(self,.shouldPropagate)
-		let attachments = attachmentsDict as? [String:Any]	//	matrix values at least are keys. This may want to be Any
-		
-		//	value of this the name(key) of a colour matrix
-		let colourMatrixName = attachments?[kCVImageBufferYCbCrMatrixKey as String] as? String
-		return colourMatrixName
+		if #available(macOS 12.0, *) 
+		{
+			let attachmentsDict = CVBufferCopyAttachments(self,.shouldPropagate)
+			let attachments = attachmentsDict as? [String:Any]	//	matrix values at least are keys. This may want to be Any
+			
+			//	value of this the name(key) of a colour matrix
+			let colourMatrixName = attachments?[kCVImageBufferYCbCrMatrixKey as String] as? String
+			return colourMatrixName
+		} 
+		else 
+		{
+			return nil
+		}
 	}
 	
 	var yuvColourMatrix : simd_float3x3?
@@ -157,7 +168,7 @@ public extension CVPixelBuffer
 				*/
 			case kCVImageBufferYCbCrMatrix_ITU_R_709_2:
 				//	todo: cache these in code
-				if #available(iOS 18.0, *) {
+				if #available(iOS 18.0,macOS 15.0, *) {
 					return vImage_ARGBToYpCbCrMatrix.itu_R_709_2.yuvToRgb
 				} else {
 					return nil
@@ -165,7 +176,7 @@ public extension CVPixelBuffer
 				
 			case kCVImageBufferYCbCrMatrix_ITU_R_601_4:
 				//	todo: cache these in code
-				if #available(iOS 18.0, *) {
+				if #available(iOS 18.0,macOS 15.0, *) {
 					return vImage_ARGBToYpCbCrMatrix.itu_R_601_4.yuvToRgb
 				} else {
 					//	float3(0.99999994, 0.99999994, 0.99999994), 
