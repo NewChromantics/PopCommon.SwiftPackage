@@ -1,5 +1,6 @@
 import CoreMedia
-
+import simd
+import Accelerate
 
 public func CVGetErrorString(error:CVReturn) -> String
 {
@@ -93,6 +94,28 @@ public func CVPixelBufferGetPixelFormatName(_ format: CMPixelFormatType) -> Stri
     }
 }
 
+
+public extension vImage_ARGBToYpCbCrMatrix
+{
+	//	get a simple 3x3 matrix for shaders etc to use
+	var rgbToYuv : simd_float3x3
+	{
+		//	https://developer.apple.com/documentation/accelerate/vimage_argbtoypcbcrmatrix
+		let row0 = simd_float3( R_Yp, G_Yp, B_Yp )
+		let row1 = simd_float3( R_Cb, G_Cb, B_Cb_R_Cr )
+		let row2 = simd_float3( B_Cb_R_Cr, G_Cr, B_Cr )
+		let rgbToYuv = simd_float3x3(rows: [row0,row1,row2])
+		return rgbToYuv
+	}
+	
+	//	rgb = matrix * float3( luma, chroma-0.5)
+	var yuvToRgb : simd_float3x3
+	{
+		return rgbToYuv.inverse
+	}
+}
+	
+
 public extension CVPixelBuffer 
 {
 	var pixelFormatName : String 
@@ -100,4 +123,68 @@ public extension CVPixelBuffer
 		let p = CVPixelBufferGetPixelFormatType(self)
 		return CVPixelBufferGetPixelFormatName(p)
 	}
+	
+	var planeCount : Int
+	{
+		return CVPixelBufferGetPlaneCount(self)
+	}
+	
+	var yuvColourMatrixKey : String?
+	{
+		let attachmentsDict = CVBufferCopyAttachments(self,.shouldPropagate)
+		let attachments = attachmentsDict as? [String:Any]	//	matrix values at least are keys. This may want to be Any
+		
+		//	value of this the name(key) of a colour matrix
+		let colourMatrixName = attachments?[kCVImageBufferYCbCrMatrixKey as String] as? String
+		return colourMatrixName
+	}
+	
+	var yuvColourMatrix : simd_float3x3?
+	{
+		guard let colourMatrix = self.yuvColourMatrixKey else
+		{
+			return nil
+		}
+		
+		switch colourMatrix as CFString
+		{
+				/*
+			case kCVImageBufferYCbCrMatrix_ITU_R_2020:
+				return vImage_ARGBToYpCbCrMatrix.itu_R_601_4.float4x4
+				
+			case kCVImageBufferYCbCrMatrix_P3_D65:
+				return simd_float4x4.identity
+				*/
+			case kCVImageBufferYCbCrMatrix_ITU_R_709_2:
+				//	todo: cache these in code
+				if #available(iOS 18.0, *) {
+					return vImage_ARGBToYpCbCrMatrix.itu_R_709_2.yuvToRgb
+				} else {
+					return nil
+				}
+				
+			case kCVImageBufferYCbCrMatrix_ITU_R_601_4:
+				//	todo: cache these in code
+				if #available(iOS 18.0, *) {
+					return vImage_ARGBToYpCbCrMatrix.itu_R_601_4.yuvToRgb
+				} else {
+					//	float3(0.99999994, 0.99999994, 0.99999994), 
+					//	float3(1.464084e-08, -0.34413624, 1.7719998), 
+					//	float3(1.4019998, -0.71413624, 2.9597064e-08) 
+					return nil
+				}
+				/*
+			case kCVImageBufferYCbCrMatrix_SMPTE_240M_1995:
+				return simd_float4x4.identity
+				
+			case kCVImageBufferYCbCrMatrix_DCI_P3:
+				return simd_float4x4.identity
+				*/
+				
+				//	throw here for existance of a key, but not found?
+			default:
+				return nil
+		}
+	}
 }
+
