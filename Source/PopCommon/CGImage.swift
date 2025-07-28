@@ -99,23 +99,21 @@ public func PixelBufferToSwiftImage(_ pixelBuffer:CVPixelBuffer) throws -> Image
 #endif
 }
 
-public extension CVPixelBuffer
-{
-	var cgImage : CGImage 
-	{
-		get throws
-		{
-			return try PixelBufferToCGImage(self)
-		}
-	}
-	
-	var width : Int				{	CVPixelBufferGetWidth(self)	}
-	var height : Int				{	CVPixelBufferGetHeight(self)	}
-	var pixelFormat : OSType		{	CVPixelBufferGetPixelFormatType(self)	}
-}
 
 public func PixelBufferToCGImage(_ pb:CVPixelBuffer) throws -> CGImage
 {
+	//	todo: fallback with CoreImage
+	/*
+	 let ciImage = CIImage(cvPixelBuffer: self)
+	 let context = CIContext()
+	 guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else 
+	 {
+	 throw RuntimeError("Failed to create cgimage from cvpixelbuffer")
+	 // Handle error
+	 return nil
+	 }*/
+	
+	
 	var cgImage: CGImage?
 	
 	let InputWidth = CVPixelBufferGetWidth(pb)
@@ -443,13 +441,10 @@ extension CGImage
 
 public extension CGImage
 {
-	func withUnsafePixels<Result>(_ callback:(UnsafePointer<UInt8>,_ width:Int,_ height:Int,_ rowStride:Int,_ isArgb:Bool)throws->Result) throws -> Result
+	func withUnsafePixels<Result>(_ callback:(UnsafePointer<UInt8>,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelFormat:OSType)throws->Result) throws -> Result
 	{
 		let imageCg = self
-		let alphaFirst = imageCg.alphaInfo == .first || imageCg.alphaInfo == .premultipliedFirst
-		let alphaLast = imageCg.alphaInfo == .last || imageCg.alphaInfo == .premultipliedLast
-		let isArgb = alphaFirst
-		let pixelFormat = imageCg.pixelFormatInfo
+		let pixelFormatInfo = imageCg.pixelFormatInfo
 		let bitsPerPixel = imageCg.bitsPerPixel
 		let bitsPerComponent = imageCg.bitsPerComponent
 		let bytesPerPixel = bitsPerPixel / bitsPerComponent
@@ -458,39 +453,75 @@ public extension CGImage
 		let channels = bytesPerPixel
 		let pixelData = imageCg.dataProvider!.data
 		let sourceData : UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
-		
-		return try callback( sourceData, width, height, rowStride, isArgb )
+		let pixelFormat = try GetPixelFormat()
+
+		return try callback( sourceData, width, height, rowStride, pixelFormat )
 	}
 	
-	var formatName : String 
+	//	calculate pixelformat
+	//	using CVPixelPformat to match CVPixelBuffer
+	func GetPixelFormat() throws -> OSType
 	{
+		let pixelFormatInfo = self.pixelFormatInfo
+		
 		let bitsPerComponent = self.bitsPerComponent
 		let bytesPerPixel = self.bitsPerPixel / bitsPerComponent
 		let channels = bytesPerPixel
 		
+		if bitsPerComponent != 8
+		{
+			throw CGImageError("Unhandled bitsPerComponent!=8")
+		}
+		
 		if channels == 1 && self.alphaInfo == .alphaOnly
 		{
-			return "Alpha"
+			//	alpha
+			return kCVPixelFormatType_OneComponent8
 		}
 		
 		if channels == 1
 		{
-			return "Greyscale"
+			return kCVPixelFormatType_OneComponent8
 		}
 		
-		let alphaFirst = self.alphaInfo == .premultipliedFirst || self.alphaInfo == .first
-		let alphaLast = self.alphaInfo == .premultipliedLast || self.alphaInfo == .last
-		let noAlpha = self.alphaInfo == .none
+		if channels == 3
+		{
+			//	gr: seems to always be BGR
+			return kCVPixelFormatType_24BGR
+		}
 		
+		//	skip first & skip last luckily are filled with 255
+		let alphaFirst = self.alphaInfo == .premultipliedFirst || self.alphaInfo == .first || self.alphaInfo == .noneSkipFirst
+		let alphaLast = self.alphaInfo == .premultipliedLast || self.alphaInfo == .last || self.alphaInfo == .noneSkipLast
+		let noAlpha = self.alphaInfo == .none
+
 		if alphaFirst && channels == 4
 		{
-			return "ARGB"
+			//	check this is RGB not BGR
+			return kCVPixelFormatType_32ARGB
 		}
 		if alphaLast && channels == 4
 		{
-			return "RGBA"
+			//	check this is RGB not BGR
+			return kCVPixelFormatType_32RGBA
 		}
 		
-		return "\(channels)channel" + ( noAlpha ? "(no alpha)":"" )
+		print("Unhandled format \(channels)channel" + ( noAlpha ? "(no alpha)":"" ) )
+		return 0
 	}
+		
+	var pixelFormat : OSType	
+	{
+		do
+		{
+			return try GetPixelFormat()
+		}
+		catch
+		{
+			print("pixel format error \(error.localizedDescription)")
+			return 0
+		}
+	}
+	
+	var formatName : String	{	CVPixelBufferGetPixelFormatName(self.pixelFormat)	}
 }

@@ -1,6 +1,8 @@
 import CoreMedia
+import CoreImage
 import simd
 import Accelerate
+import UniformTypeIdentifiers
 
 public func CVGetErrorString(error:CVReturn) -> String
 {
@@ -118,6 +120,19 @@ public extension vImage_ARGBToYpCbCrMatrix
 
 public extension CVPixelBuffer 
 {
+	var cgImage : CGImage 
+	{
+		get throws
+		{
+			return try PixelBufferToCGImage(self)
+		}
+	}
+		
+	var width : Int				{	CVPixelBufferGetWidth(self)	}
+	var height : Int				{	CVPixelBufferGetHeight(self)	}
+	var pixelFormat : OSType		{	CVPixelBufferGetPixelFormatType(self)	}
+
+	
 	var pixelFormatName : String 
 	{
 		let p = CVPixelBufferGetPixelFormatType(self)
@@ -196,6 +211,33 @@ public extension CVPixelBuffer
 			default:
 				return nil
 		}
+	}
+	
+	func ToJpeg(qualityPercent:Int=99) throws -> Data
+	{
+		let cgImage = try self.cgImage
+		
+		let data = NSMutableData()
+		let properties: [CFString: Any] = 
+		[
+			kCGImageDestinationLossyCompressionQuality: Float(qualityPercent)/100.0
+		]
+		//	macos11+
+		//let jpegUniveralType = UTType.jpeg.identifier
+		let jpegUniveralType = "public.jpeg"
+		guard let destination = CGImageDestinationCreateWithData(data, jpegUniveralType as CFString, 1, properties as CFDictionary) else
+		{
+			throw RuntimeError("Could not create jpeg destination")
+		}
+		
+		CGImageDestinationAddImage(destination, cgImage, properties as CFDictionary)
+		
+		if !CGImageDestinationFinalize(destination) 
+		{
+			throw RuntimeError("failed to finalise jpeg destination")
+		}
+		
+		return data as Data
 	}
 }
 
