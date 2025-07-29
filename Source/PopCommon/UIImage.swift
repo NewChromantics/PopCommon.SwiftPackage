@@ -80,7 +80,7 @@ extension UIImage
 
 public extension UIImage
 {
-	func withUnsafePixels<Result>(_ callback:(UnsafePointer<UInt8>,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelformat:OSType)throws->Result) throws -> Result
+	func withUnsafePixels<Result>(_ callback:(UnsafePointer<UInt8>,_ dataSize:Int,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelformat:OSType)throws->Result) throws -> Result
 	{
 		guard let cgImage = self.cgImage else
 		{

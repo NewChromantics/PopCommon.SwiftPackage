@@ -441,7 +441,7 @@ extension CGImage
 
 public extension CGImage
 {
-	func withUnsafePixels<Result>(_ callback:(UnsafePointer<UInt8>,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelFormat:OSType)throws->Result) throws -> Result
+	func withUnsafePixels<Result>(_ callback:(UnsafePointer<UInt8>,_ dataSize:Int,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelFormat:OSType)throws->Result) throws -> Result
 	{
 		let imageCg = self
 		let pixelFormatInfo = imageCg.pixelFormatInfo
@@ -451,11 +451,22 @@ public extension CGImage
 		let bytesPerPixel2 = imageCg.bytesPerRow / width
 		let rowStride = imageCg.bytesPerRow / bytesPerPixel	//	some images are padded!
 		let channels = bytesPerPixel
-		let pixelData = imageCg.dataProvider!.data
+		guard let dataProvider = imageCg.dataProvider else
+		{
+			throw CGImageError("Failed to get data provider for image")
+		}
+		let pixelData = dataProvider.data
 		let sourceData : UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
+		let sourceDataSize = CFDataGetLength(pixelData)
 		let pixelFormat = try GetPixelFormat()
 
-		return try callback( sourceData, width, height, rowStride, pixelFormat )
+		//	expect alignment
+		if ( channels * rowStride * height != sourceDataSize )
+		{
+			throw CGImageError("Image data vs dimensions misalignment")
+		}
+		
+		return try callback( sourceData, sourceDataSize, width, height, rowStride, pixelFormat )
 	}
 	
 	//	calculate pixelformat
