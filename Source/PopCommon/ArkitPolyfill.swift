@@ -77,7 +77,7 @@ public struct ARCameraPolyfill
 	public var transform = simd_float4x4.identity
 	public var projectionMatrix = simd_float4x4.identity
 	public var intrinsics = simd_float3x3.identity
-	
+	public var imageResolution = CGSize(width: 100, height: 100)
 	
 	public init(transform:simd_float4x4 = .identity, projectionMatrix:simd_float4x4 = .identity) 
 	{
