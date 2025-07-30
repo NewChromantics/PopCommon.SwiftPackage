@@ -455,7 +455,10 @@ public extension CGImage
 		{
 			throw CGImageError("Failed to get data provider for image")
 		}
-		let pixelData = dataProvider.data
+		guard let pixelData = dataProvider.data else
+		{
+			throw CGImageError("Failed to get data provider.data for image")
+		}			
 		let sourceData : UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
 		let sourceDataSize = CFDataGetLength(pixelData)
 		let pixelFormat = try GetPixelFormat()
