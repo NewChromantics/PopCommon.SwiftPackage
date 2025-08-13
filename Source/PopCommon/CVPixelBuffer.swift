@@ -131,7 +131,7 @@ public extension CVPixelBuffer
 	var width : Int				{	CVPixelBufferGetWidth(self)	}
 	var height : Int				{	CVPixelBufferGetHeight(self)	}
 	var pixelFormat : OSType		{	CVPixelBufferGetPixelFormatType(self)	}
-
+	var sizeBytes : Int				{	CVPixelBufferGetDataSize(self)	}
 	
 	var pixelFormatName : String 
 	{
