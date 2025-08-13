@@ -2,6 +2,14 @@ import simd
 import SwiftUI	//	angle
 
 
+public extension simd_float4
+{
+	var xyz : simd_float3
+	{
+		return simd_float3(x,y,z)
+	}
+}
+
 public extension simd_float3x3
 {
 	static var identity : simd_float3x3
