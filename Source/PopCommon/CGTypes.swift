@@ -80,19 +80,19 @@ public func -(lhs: CGRect?, rhs: CGPoint?) -> CGRect?
 
 public extension CGRect
 {
-	public var center : CGPoint
+	var center : CGPoint
 	{
 		let x = self.origin.x + (self.width / 2.0)
 		let y = self.origin.y + (self.height / 2.0)
 		return CGPoint(x:x,y:y)	
 	}
 	
-	public var left : CGFloat	{	return self.origin.x	}
-	public var right : CGFloat	{	return self.origin.x + self.size.width	}
-	public var top : CGFloat	{	return self.origin.y	}
-	public var bottom : CGFloat	{	return self.origin.y + self.size.height	}
-	public var topLeft : CGPoint	{	return self.origin	}
-	public var bottomRight : CGPoint	{	return CGPoint(x:right,y:bottom)	}
+	var left : CGFloat	{	return self.origin.x	}
+	var right : CGFloat	{	return self.origin.x + self.size.width	}
+	var top : CGFloat	{	return self.origin.y	}
+	var bottom : CGFloat	{	return self.origin.y + self.size.height	}
+	var topLeft : CGPoint	{	return self.origin	}
+	var bottomRight : CGPoint	{	return CGPoint(x:right,y:bottom)	}
 	
 	//	turn 0...1 inside this rect to parent space
 	func expandNormalised(_ boundsPos:CGPoint) -> CGPoint
@@ -102,21 +102,21 @@ public extension CGRect
 		return CGPoint(x:x,y:y)
 	}
 	
-	public func GetUnnormalisedPoint(normalised:CGPoint) -> CGPoint
+	func GetUnnormalisedPoint(normalised:CGPoint) -> CGPoint
 	{
 		let x = self.left + (normalised.x * self.width)
 		let y = self.top + (normalised.y * self.height)
 		return CGPoint( x:x, y:y )
 	}
 	
-	public func GetNormalisedPoint(local:CGPoint) -> CGPoint
+	func GetNormalisedPoint(local:CGPoint) -> CGPoint
 	{
 		let x = range( self.left, self.right, value: local.x )
 		let y = range( self.top, self.bottom, value: local.y )
 		return CGPoint( x:x, y:y )
 	}
 	
-	public func GetUnnormalised(normalised:CGRect) -> CGRect
+	func GetUnnormalised(normalised:CGRect) -> CGRect
 	{
 		let topLeft = GetUnnormalisedPoint(normalised: normalised.topLeft )
 		let bottomRight = GetUnnormalisedPoint(normalised: normalised.bottomRight )
@@ -125,7 +125,7 @@ public extension CGRect
 		return CGRect( origin:topLeft, size:CGSize(width:width,height:height) )
 	}
 	
-	public func resizeToFit(parentSize:CGSize,fitSize:CGRect) -> CGRect
+	func resizeToFit(parentSize:CGSize,fitSize:CGRect) -> CGRect
 	{
 		let parentRect = CGRect( origin: CGPoint(x:0,y:0), size: parentSize )
 		
@@ -144,17 +144,17 @@ public extension CGRect
 		return CGRect( origin:NewTopLeft, size:CGSize(width:width,height:height) )
 	}
 	
-	public static func +=(lhs: inout CGRect, rhs: CGPoint)
+	static func +=(lhs: inout CGRect, rhs: CGPoint)
 	{
 		lhs.origin += rhs
 	}
 	
-	public static func -=(lhs: inout CGRect, rhs: CGPoint)
+	static func -=(lhs: inout CGRect, rhs: CGPoint)
 	{
 		lhs.origin -= rhs
 	}
 	
-	public static func +(lhs: CGRect, rhs: CGPoint?) -> CGRect?
+	static func +(lhs: CGRect, rhs: CGPoint?) -> CGRect?
 	{
 		guard let rhs else
 		{
