@@ -5,6 +5,10 @@ public struct HoverCursorModifier : ViewModifier
 {
 	@State var isHovering : Bool = false
 	
+	public init()
+	{
+	}
+	
 	public func body(content: Content) -> some View 
 	{
 		content
@@ -14,6 +18,7 @@ public struct HoverCursorModifier : ViewModifier
 	func OnHover(_ nowHovering:Bool)
 	{
 		self.isHovering = nowHovering
+		//print("is hovering: \(nowHovering)")
 		DispatchQueue.main.async
 		{
 #if os(macOS)
