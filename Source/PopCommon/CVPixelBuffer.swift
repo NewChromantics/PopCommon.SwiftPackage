@@ -252,7 +252,18 @@ public extension CVPixelBuffer
 		let width = CVPixelBufferGetWidth(self)
 		let height = CVPixelBufferGetHeight(self)
 		let formatType = CVPixelBufferGetPixelFormatType(self)
-		let attachments = CVBufferCopyAttachments(self, .shouldPropagate)
+		
+		let attachments = 
+		{
+			if #available(macOS 12.0, *) 
+			{
+				return CVBufferCopyAttachments(self, .shouldPropagate)
+			} 
+			else 
+			{
+				return CVBufferGetAttachments(self, .shouldPropagate)
+			}
+		}()
 		
 		CVPixelBufferCreate(nil, width, height, formatType, attachments, &_copy)
 		
