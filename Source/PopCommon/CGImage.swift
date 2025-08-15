@@ -22,7 +22,7 @@ extension CGImage
 {
 	public static func fromRgbBuffer(_ rgbBuffer:inout[UInt8],width:Int,height:Int) throws -> CGImage
 	{
-		var convert = 
+		let convert = 
 		{
 			(rgb:inout vImage_Buffer,rgba:inout vImage_Buffer) in
 			let alphaBuffer : UnsafePointer<vImage_Buffer>? = nil
@@ -444,11 +444,11 @@ public extension CGImage
 	func withUnsafePixels<Result>(_ callback:(UnsafePointer<UInt8>,_ dataSize:Int,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelFormat:OSType)throws->Result) throws -> Result
 	{
 		let imageCg = self
-		let pixelFormatInfo = imageCg.pixelFormatInfo
+		//let pixelFormatInfo = imageCg.pixelFormatInfo
 		let bitsPerPixel = imageCg.bitsPerPixel
 		let bitsPerComponent = imageCg.bitsPerComponent
 		let bytesPerPixel = bitsPerPixel / bitsPerComponent
-		let bytesPerPixel2 = imageCg.bytesPerRow / width
+		//let bytesPerPixel2 = imageCg.bytesPerRow / width
 		let rowStride = imageCg.bytesPerRow / bytesPerPixel	//	some images are padded!
 		let channels = bytesPerPixel
 		guard let dataProvider = imageCg.dataProvider else
@@ -476,7 +476,7 @@ public extension CGImage
 	//	using CVPixelPformat to match CVPixelBuffer
 	func GetPixelFormat() throws -> OSType
 	{
-		let pixelFormatInfo = self.pixelFormatInfo
+		//let pixelFormatInfo = self.pixelFormatInfo
 		
 		let bitsPerComponent = self.bitsPerComponent
 		let bytesPerPixel = self.bitsPerPixel / bitsPerComponent

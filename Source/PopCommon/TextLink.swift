@@ -33,7 +33,7 @@ public struct HoverCursorModifier : ViewModifier
 
 //@available(macOS 11.0, *)	//	open url
 //@available(macOS 12.0, *)	//	overlay for fake underline
-@available(macOS 13.0, *)	//	underline
+@available(macOS 13.0, iOS 16, *)	//	underline
 public struct TextLinkModifier : ViewModifier
 {
 	@Environment(\.openURL) private var openURL
@@ -99,7 +99,7 @@ public struct TextLinkModifier : ViewModifier
 #endif
 			//	if ios, find a nice way to show a sharing sheet and share file
 		}
-		if let url
+		if url != nil
 		{
 			return OpenDefaultApplication
 		}
@@ -109,7 +109,7 @@ public struct TextLinkModifier : ViewModifier
 		
 }
 
-@available(macOS 13.0, *)
+@available(macOS 13.0, iOS 16.0, *)
 public extension View
 {
 	func link(url:URL?,linkColour:Color = .blue) -> some View 
@@ -121,7 +121,7 @@ public extension View
 
 #Preview
 {
-	if #available(macOS 13.0, *) 
+	if #available(macOS 13.0, iOS 16, *) 
 	{
 		Text("Google")
 			.link(url: URL(string: "https://google.com"))

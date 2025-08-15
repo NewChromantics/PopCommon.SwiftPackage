@@ -4,9 +4,15 @@ import SwiftUI	//	angle
 
 public extension simd_float4
 {
+	//	simd4.xyz swizzle
 	var xyz : simd_float3
 	{
 		return simd_float3(x,y,z)
+	}
+	
+	mutating func Normalise()
+	{
+		self = simd.normalize(self)
 	}
 }
 

@@ -14,6 +14,16 @@ public extension UIImage
 }
 #endif
 
+#if canImport(UIKit)
+public extension UIImage
+{
+	//	not present in ios
+	convenience init?(contentsOf:URL)
+	{
+		self.init(contentsOfFile: contentsOf.absoluteString)
+	}
+}
+#endif
 
 public struct UIImageError : LocalizedError
 {
