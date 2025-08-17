@@ -118,6 +118,61 @@ public extension vImage_ARGBToYpCbCrMatrix
 }
 	
 
+
+public func CGImageToPixelBuffer(_ cg:CGImage) throws -> CVPixelBuffer
+{
+	try cg.withUnsafePixels 
+	{ 
+		ptr, dataSize, width, height, rowStride, pixelFormat in
+		
+		//	allow use in metal
+		let options : [CFString:Any] = 
+		[	
+			kCVPixelBufferMetalCompatibilityKey:true
+		]
+		
+		let format = pixelFormat == kCVPixelFormatType_32RGBA ? kCVPixelFormatType_32BGRA : pixelFormat
+		
+		var pixelBuffer : CVPixelBuffer?
+		let CreateStatus : OSStatus = CVPixelBufferCreate(kCFAllocatorDefault, width, height, format, options as CFDictionary, &pixelBuffer )
+		if CreateStatus != 0
+		{
+			throw CGImageError("Failed to create \(width)x\(height)(\(format)) pixel buffer; \(GetVideoToolboxError(CreateStatus))")
+		}
+		guard let pixelBuffer else
+		{
+			throw CGImageError("Failed to create \(width)x\(height)(\(format)) pixel buffer; \(GetVideoToolboxError(CreateStatus)) (null)")
+		}
+		
+		let colourBytes = ptr
+		try pixelBuffer.LockMutablePixels
+		{
+			(bytes:UnsafeMutableBufferPointer<UInt8>) in
+			
+			//	expecting colour bytes & format to align
+			//	once format is customisable, change the colour byte array above
+			for i in 0...bytes.count-1
+			{
+				bytes[i] = colourBytes[i%dataSize]
+			}
+		}
+		
+		return pixelBuffer
+	}
+}
+
+public extension CGImage
+{
+	var cvPixelBuffer : CVPixelBuffer
+	{
+		get throws
+		{
+			return try CGImageToPixelBuffer(self)
+		}
+	}
+}
+
+
 public extension CVPixelBuffer 
 {
 	var cgImage : CGImage 
