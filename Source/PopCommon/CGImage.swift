@@ -441,6 +441,8 @@ extension CGImage
 
 public extension CGImage
 {
+	var sizeBytes : Int		{	self.bytesPerRow * self.height	}
+	
 	func withUnsafePixels<Result>(_ callback:(UnsafePointer<UInt8>,_ dataSize:Int,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelFormat:OSType)throws->Result) throws -> Result
 	{
 		let imageCg = self
@@ -538,4 +540,40 @@ public extension CGImage
 	}
 	
 	var formatName : String	{	CVPixelBufferGetPixelFormatName(self.pixelFormat)	}
+	
+	func copy() throws -> CGImage 
+	{
+		guard let copy = self.copy() else
+		{
+			throw CGImageError("Failed to make copy")
+		}
+		return copy
+	}
+	
+	func ToJpeg(qualityPercent:Int=99) throws -> Data
+	{
+		let cgImage = self
+		
+		let data = NSMutableData()
+		let properties: [CFString: Any] = 
+		[
+			kCGImageDestinationLossyCompressionQuality: Float(qualityPercent)/100.0
+		]
+		//	macos11+
+		//let jpegUniveralType = UTType.jpeg.identifier
+		let jpegUniveralType = "public.jpeg"
+		guard let destination = CGImageDestinationCreateWithData(data, jpegUniveralType as CFString, 1, properties as CFDictionary) else
+		{
+			throw RuntimeError("Could not create jpeg destination")
+		}
+		
+		CGImageDestinationAddImage(destination, cgImage, properties as CFDictionary)
+		
+		if !CGImageDestinationFinalize(destination) 
+		{
+			throw RuntimeError("failed to finalise jpeg destination")
+		}
+		
+		return data as Data
+	}
 }
