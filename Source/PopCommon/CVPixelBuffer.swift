@@ -216,28 +216,7 @@ public extension CVPixelBuffer
 	func ToJpeg(qualityPercent:Int=99) throws -> Data
 	{
 		let cgImage = try self.cgImage
-		
-		let data = NSMutableData()
-		let properties: [CFString: Any] = 
-		[
-			kCGImageDestinationLossyCompressionQuality: Float(qualityPercent)/100.0
-		]
-		//	macos11+
-		//let jpegUniveralType = UTType.jpeg.identifier
-		let jpegUniveralType = "public.jpeg"
-		guard let destination = CGImageDestinationCreateWithData(data, jpegUniveralType as CFString, 1, properties as CFDictionary) else
-		{
-			throw RuntimeError("Could not create jpeg destination")
-		}
-		
-		CGImageDestinationAddImage(destination, cgImage, properties as CFDictionary)
-		
-		if !CGImageDestinationFinalize(destination) 
-		{
-			throw RuntimeError("failed to finalise jpeg destination")
-		}
-		
-		return data as Data
+		return try cgImage.ToJpeg(qualityPercent:qualityPercent)
 	}
 }
 
@@ -323,5 +302,115 @@ public extension CVPixelBuffer
 			}
 		}
 		return copy
+	}
+}
+
+
+extension CVPixelBuffer
+{
+	//	withUnsafeBytes style access
+	public func LockPixels(_ onLockedPixels:@escaping (UnsafeRawBufferPointer)throws->Void) throws
+	{
+		CVPixelBufferLockBaseAddress( self, [])
+		
+		let PixelRawPointer : UnsafeMutableRawPointer? = CVPixelBufferGetBaseAddress(self)
+		let PixelDataSize = CVPixelBufferGetDataSize(self)
+		guard let PixelRawPointer else
+		{
+			CVPixelBufferUnlockBaseAddress(self, [])
+			throw RuntimeError("Failed to get address of pixels in CVPixelBuffer")
+		}
+		
+		let PixelRawBuffer = PixelRawPointer.bindMemory(to: UInt8.self, capacity: PixelDataSize)
+		let PixelBufferPointer = UnsafeBufferPointer(start: PixelRawBuffer, count: PixelDataSize)
+		
+		try PixelBufferPointer.withUnsafeBytes
+		{
+			pixelsPtr in
+			do
+			{
+				//	destData?.copyMemory(from: rgba8PixelsPtr, byteCount: rgba8Pixels.count)
+				try onLockedPixels(pixelsPtr)
+			}
+			catch let error
+			{
+				CVPixelBufferUnlockBaseAddress(self, [])
+				throw error
+			}
+		}
+		CVPixelBufferUnlockBaseAddress(self, [])
+	}
+	
+	public func LockMutablePixels(_ onLockedPixels:@escaping (UnsafeMutableBufferPointer<UInt8>)throws->Void) throws
+	{
+		CVPixelBufferLockBaseAddress( self, [])
+		
+		let PixelRawPointer : UnsafeMutableRawPointer? = CVPixelBufferGetBaseAddress(self)
+		let PixelDataSize = CVPixelBufferGetDataSize(self)
+		guard let PixelRawPointer else
+		{
+			CVPixelBufferUnlockBaseAddress(self, [])
+			throw RuntimeError("Failed to get address of pixels in CVPixelBuffer")
+		}
+		
+		let PixelRawBuffer = PixelRawPointer.bindMemory(to: UInt8.self, capacity: PixelDataSize)
+		var PixelBufferPointer = UnsafeMutableBufferPointer(start: PixelRawBuffer, count: PixelDataSize)
+		
+		try PixelBufferPointer.withUnsafeMutableBufferPointer
+		{
+			pixelsPtr in
+			do
+			{
+				//	destData?.copyMemory(from: rgba8PixelsPtr, byteCount: rgba8Pixels.count)
+				try onLockedPixels(pixelsPtr)
+			}
+			catch let error
+			{
+				CVPixelBufferUnlockBaseAddress(self, [])
+				throw error
+			}
+		}
+		CVPixelBufferUnlockBaseAddress(self, [])
+	}
+	
+	public func Resize(width:Int,height:Int,forceOutputFormat:OSType?=nil) throws -> CVPixelBuffer
+	{
+		let ciImage = CIImage(cvPixelBuffer: self)
+		let sourceDimensions = ciImage.extent
+		
+		let scaleFilter = CIFilter.lanczosScaleTransform()
+		scaleFilter.inputImage = ciImage
+		
+		//	aspectRatio = horizontal scaling factor
+		//	so, scale to height, then squash width 
+		scaleFilter.scale = Float(height) / Float(sourceDimensions.height)
+		let newWidth = scaleFilter.scale * Float(sourceDimensions.width)
+		scaleFilter.aspectRatio = Float(width) / Float(newWidth)
+		
+		guard let outputImage = scaleFilter.outputImage else 
+		{
+			throw RuntimeError("CIFilter scale failed to produce output image") 
+		}
+		
+		let outputFormat = forceOutputFormat ?? self.pixelFormat
+		
+		// Create a new CVPixelBuffer
+		var outputPixelBuffer : CVPixelBuffer?
+		let status = CVPixelBufferCreate(kCFAllocatorDefault, width, height, outputFormat, nil, &outputPixelBuffer)
+		
+		if status != kCVReturnSuccess
+		{
+			throw RuntimeError("CVPixelBufferCreate failed to create buffer: \(CVGetErrorString(error:status))")
+		}
+		guard let buffer = outputPixelBuffer else
+		{
+			throw RuntimeError("CVPixelBufferCreate succeeded but produced null buffer")
+		}
+		
+		//	Render the CIImage into the new CVPixelBuffer
+		let context = CIContext()
+		context.render(outputImage, to: buffer)
+		
+		return buffer
 	}
 }
