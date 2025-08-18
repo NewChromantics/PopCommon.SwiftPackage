@@ -104,7 +104,7 @@ public struct ARWorldTrackingConfigurationPolyfill
 
 public struct ARSceneDepthPolyfill
 {
-	public var depthMap : CVPixelBuffer?
+	public var depthMap : CVPixelBuffer
 }
 
 public struct ARFramePolyfill
