@@ -100,18 +100,14 @@ public func PixelBufferToSwiftImage(_ pixelBuffer:CVPixelBuffer) throws -> Image
 }
 
 
-public func PixelBufferToCGImage(_ pb:CVPixelBuffer) throws -> CGImage
+public func PixelBufferToCGImage(_ pb:CVPixelBuffer,useCoreImage:Bool=false) throws -> CGImage
 {
-	//	todo: fallback with CoreImage
-	/*
-	 let ciImage = CIImage(cvPixelBuffer: self)
-	 let context = CIContext()
-	 guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else 
-	 {
-	 throw RuntimeError("Failed to create cgimage from cvpixelbuffer")
-	 // Handle error
-	 return nil
-	 }*/
+	//	alternative
+	if useCoreImage
+	{
+		let ci = CIImage(cvPixelBuffer: pb)
+		return try ci.cgImage
+	}
 	
 	
 	var cgImage: CGImage?
@@ -163,6 +159,18 @@ public func PixelBufferToCGImage(_ pb:CVPixelBuffer) throws -> CGImage
 	
 	if ( Result != 0 || cgImage == nil )
 	{
+		//	alternative
+		do
+		{
+			let ci = CIImage(cvPixelBuffer: pb)
+			return try ci.cgImage
+		}
+		catch
+		{
+			print("Backup PixelBuffer->CIImage failed \(error.localizedDescription)")
+		}		
+
+		//	kVTParameterErr -12902
 		//throw RuntimeError("VideoToolbox failed to create CGImage (\(InputWidth)x\(InputHeight)[\(InputFormatName)]; \(GetVideoToolboxError(Result))")
 		throw RuntimeError("VideoToolbox failed to create CGImage (\(InputWidth)x\(InputHeight)[\(InputFormatName)]; \(Result))")
 	}
@@ -374,49 +382,67 @@ public extension CGImage
 		//let pixelFormatInfo = self.pixelFormatInfo
 		
 		let bitsPerComponent = self.bitsPerComponent
-		let bytesPerPixel = self.bitsPerPixel / bitsPerComponent
+		let bitsPerPixel = self.bitsPerPixel
+		let bytesPerPixel = bitsPerPixel / bitsPerComponent
 		let channels = bytesPerPixel
-		
-		if bitsPerComponent != 8
-		{
-			throw CGImageError("Unhandled bitsPerComponent!=8")
-		}
-		
-		if channels == 1 && self.alphaInfo == .alphaOnly
-		{
-			//	alpha
-			return kCVPixelFormatType_OneComponent8
-		}
-		
-		if channels == 1
-		{
-			return kCVPixelFormatType_OneComponent8
-		}
-		
-		if channels == 3
-		{
-			//	gr: seems to always be BGR
-			return kCVPixelFormatType_24BGR
-		}
+		let isFloatFormat = self.bitmapInfo.contains(.floatComponents)
 		
 		//	skip first & skip last luckily are filled with 255
 		let alphaFirst = self.alphaInfo == .premultipliedFirst || self.alphaInfo == .first || self.alphaInfo == .noneSkipFirst
 		let alphaLast = self.alphaInfo == .premultipliedLast || self.alphaInfo == .last || self.alphaInfo == .noneSkipLast
 		let noAlpha = self.alphaInfo == .none
-
-		if alphaFirst && channels == 4
+		
+		if channels == 1 && bitsPerComponent == 16 && isFloatFormat
 		{
-			//	check this is RGB not BGR
-			return kCVPixelFormatType_32ARGB
+			return kCVPixelFormatType_OneComponent16Half
 		}
-		if alphaLast && channels == 4
+		if channels == 4 && bitsPerComponent == 16 && isFloatFormat
 		{
-			//	check this is RGB not BGR
-			return kCVPixelFormatType_32RGBA
+			return kCVPixelFormatType_64RGBAHalf
 		}
 		
-		print("Unhandled format \(channels)channel" + ( noAlpha ? "(no alpha)":"" ) )
-		return 0
+		if channels == 1 && bitsPerComponent == 32 && isFloatFormat
+		{
+			return kCVPixelFormatType_OneComponent32Float
+		}
+		
+		if channels == 2 && bitsPerComponent == 32 && isFloatFormat
+		{
+			return kCVPixelFormatType_OneComponent32Float
+		}
+		
+		if bitsPerComponent == 8
+		{
+			if channels == 1 && self.alphaInfo == .alphaOnly
+			{
+				//	alpha
+				return kCVPixelFormatType_OneComponent8
+			}
+			
+			if channels == 1
+			{
+				return kCVPixelFormatType_OneComponent8
+			}
+			
+			if channels == 3
+			{
+				//	gr: seems to always be BGR
+				return kCVPixelFormatType_24BGR
+			}
+			
+			if alphaFirst && channels == 4
+			{
+				//	check this is RGB not BGR
+				return kCVPixelFormatType_32ARGB
+			}
+			if alphaLast && channels == 4
+			{
+				//	check this is RGB not BGR
+				return kCVPixelFormatType_32RGBA
+			}
+		}
+		
+		throw CGImageError("Unhandled format \(channels)channel" + ( noAlpha ? "(no alpha)":"" ) + " float=\(isFloatFormat)" )
 	}
 		
 	var pixelFormat : OSType	
@@ -432,7 +458,8 @@ public extension CGImage
 		}
 	}
 	
-	var formatName : String	{	CVPixelBufferGetPixelFormatName(self.pixelFormat)	}
+	var pixelFormatName : String	{	CVPixelBufferGetPixelFormatName(self.pixelFormat)	}
+	var metalPixelFormat : MTLPixelFormat	{	CVPixelFormatToMetalPixelFormat(self.pixelFormat)	}
 	
 	func copy() throws -> CGImage 
 	{
@@ -468,5 +495,41 @@ public extension CGImage
 		}
 		
 		return data as Data
+	}
+}
+
+
+public extension CGImage
+{
+	static func FromBytes(width:Int,bytes:inout [Float]) throws -> CGImage
+	{
+		let height = bytes.count / width
+		let colourSpace = CGColorSpaceCreateDeviceGray()
+		
+		let bitmapInfo = CGImageAlphaInfo.none.rawValue | CGBitmapInfo.floatComponents.rawValue
+
+		return try bytes.withUnsafeMutableBytes 
+		{
+			buffer in
+			let bytesPerComponent = 4
+			let bytesPerRow = width * bytesPerComponent
+			let ptr = buffer.baseAddress 
+			let context = CGContext(data: ptr,//UnsafeMutableRawPointer(mutating: ptr.baseAddress!),
+									width: width,
+									height: height,
+									bitsPerComponent: bytesPerComponent*8,
+									bytesPerRow: bytesPerRow,
+									space: colourSpace,
+									bitmapInfo: bitmapInfo)
+			guard let context else
+			{
+				throw CGImageError("Failed to make context")
+			}
+			guard let image = context.makeImage() else
+			{
+				throw CGImageError("Failed to make image from context")
+			}
+			return image
+		}
 	}
 }

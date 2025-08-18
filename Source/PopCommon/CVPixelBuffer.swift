@@ -92,6 +92,7 @@ public func CVPixelBufferGetPixelFormatName(_ format: CMPixelFormatType) -> Stri
     case kCVPixelFormatType_14Bayer_RGGB:                  return "kCVPixelFormatType_14Bayer_RGGB"
     case kCVPixelFormatType_14Bayer_BGGR:                  return "kCVPixelFormatType_14Bayer_BGGR"
     case kCVPixelFormatType_14Bayer_GBRG:                  return "kCVPixelFormatType_14Bayer_GBRG"
+		case kCVPixelFormatType_DepthFloat32:				return "kCVPixelFormatType_DepthFloat32"
     default: return "CVPixelFormat_Unknown_\(format)"
     }
 }
@@ -191,6 +192,7 @@ public extension CVPixelBuffer
 		let p = CVPixelBufferGetPixelFormatType(self)
 		return CVPixelBufferGetPixelFormatName(p)
 	}
+	var metalPixelFormat : MTLPixelFormat	{	CVPixelFormatToMetalPixelFormat(self.pixelFormat)	}
 	
 	var planeCount : Int
 	{
@@ -465,5 +467,32 @@ extension CVPixelBuffer
 		context.render(outputImage, to: buffer)
 		
 		return buffer
+	}
+}
+
+public func CVPixelFormatToMetalPixelFormat(_ pixelFormat:OSType,planeIndex:Int=0) -> MTLPixelFormat
+{
+	switch pixelFormat
+	{
+		case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange:
+			return (planeIndex == 0) ? MTLPixelFormat.r8Unorm : MTLPixelFormat.rg8Unorm
+			
+		case kCVPixelFormatType_32BGRA:
+			return MTLPixelFormat.bgra8Unorm
+			
+		case kCVPixelFormatType_DepthFloat32:
+			return MTLPixelFormat.r32Float
+			
+		case kCVPixelFormatType_OneComponent16Half:
+			return MTLPixelFormat.r16Float
+
+		case kCVPixelFormatType_DepthFloat16:
+			return MTLPixelFormat.r16Float
+			
+		case kCVPixelFormatType_OneComponent32Float:
+			return MTLPixelFormat.r32Float
+			
+		default:
+			return MTLPixelFormat.rgba32Float
 	}
 }
