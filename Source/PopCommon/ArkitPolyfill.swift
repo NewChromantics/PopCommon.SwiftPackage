@@ -56,6 +56,7 @@ public struct ARSessionPolyfill
 	
 	public func run(_ config:ARWorldTrackingConfigurationPolyfill)
 	{
+		/*
 		Task
 		{
 			while ( !Task.isCancelled )
@@ -65,6 +66,7 @@ public struct ARSessionPolyfill
 				delegate?.session(self, didUpdate: frame)
 			}
 		}
+		 */
 	}
 	
 	public init()
