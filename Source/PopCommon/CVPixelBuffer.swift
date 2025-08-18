@@ -123,7 +123,7 @@ public func CGImageToPixelBuffer(_ cg:CGImage) throws -> CVPixelBuffer
 {
 	try cg.withUnsafePixels 
 	{ 
-		ptr, dataSize, width, height, rowStride, pixelFormat in
+		cgImageBytes, width, height, rowStride, pixelFormat in
 		
 		//	allow use in metal
 		let options : [CFString:Any] = 
@@ -144,17 +144,15 @@ public func CGImageToPixelBuffer(_ cg:CGImage) throws -> CVPixelBuffer
 			throw CGImageError("Failed to create \(width)x\(height)(\(format)) pixel buffer; \(GetVideoToolboxError(CreateStatus)) (null)")
 		}
 		
-		let colourBytes = ptr
 		try pixelBuffer.LockMutablePixels
 		{
 			(bytes:UnsafeMutableBufferPointer<UInt8>) in
 			
 			//	expecting colour bytes & format to align
 			//	once format is customisable, change the colour byte array above
-			for i in 0...bytes.count-1
-			{
-				bytes[i] = colourBytes[i%dataSize]
-			}
+			let destRaw = UnsafeMutableRawBufferPointer(bytes)
+			let srcRaw = UnsafeRawBufferPointer(cgImageBytes)
+			srcRaw.copyBytes(to: destRaw)
 		}
 		
 		return pixelBuffer

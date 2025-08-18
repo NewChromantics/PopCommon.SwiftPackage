@@ -335,7 +335,7 @@ public extension CGImage
 {
 	var sizeBytes : Int		{	self.bytesPerRow * self.height	}
 	
-	func withUnsafePixels<Result>(_ callback:(UnsafePointer<UInt8>,_ dataSize:Int,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelFormat:OSType)throws->Result) throws -> Result
+	func withUnsafePixels<Result>(_ callback:(UnsafeBufferPointer<UInt8>,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelFormat:OSType)throws->Result) throws -> Result
 	{
 		let imageCg = self
 		//let pixelFormatInfo = imageCg.pixelFormatInfo
@@ -363,7 +363,8 @@ public extension CGImage
 			throw CGImageError("Image data vs dimensions misalignment")
 		}
 		
-		return try callback( sourceData, sourceDataSize, width, height, rowStride, pixelFormat )
+		let sourceBuffer = UnsafeBufferPointer<UInt8>( start: sourceData, count: sourceDataSize )
+		return try callback( sourceBuffer, width, height, rowStride, pixelFormat )
 	}
 	
 	//	calculate pixelformat
