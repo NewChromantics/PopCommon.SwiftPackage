@@ -45,3 +45,41 @@ extension StringProtocol
 	public subscript(range: PartialRangeThrough<Int>) -> SubSequence { self[...index(startIndex, offsetBy: range.upperBound)] }
 	public subscript(range: PartialRangeUpTo<Int>) -> SubSequence { self[..<index(startIndex, offsetBy: range.upperBound)] }
 }
+
+
+public extension Int
+{
+	var bytesFormattedAsString : String
+	{
+		let kb = self / 1024
+		let mbFloat = Float(self) / (1024.0*1024.0)
+		let gbFloat = Float(self) / (1024.0*1024.0*1024.0)
+		
+		if kb < 1
+		{
+			return "\(self)bytes"
+		}
+		
+		//	under a meg, use kb
+		if mbFloat < 1.0
+		{
+			return "\(kb)kb"
+		}
+		
+		//	show 9.55mb but not 250mb
+		if mbFloat < 10.0
+		{
+			let mb00 = String(format:"%.02fmb",mbFloat)
+			return mb00
+		}
+		if gbFloat < 1.0
+		{
+			let mb = Int(mbFloat)
+			return "\(mb)mb"
+		}
+		
+		//	gigabytes!
+		let gb00 = String(format:"%.02fgb",gbFloat)
+		return gb00
+	}
+}
