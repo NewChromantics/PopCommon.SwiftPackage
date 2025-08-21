@@ -3,7 +3,7 @@ import Combine
 
 
 
-@available(macOS 14, *)
+@available(macOS 14,iOS 16.0, *)
 struct TaskWithProgressView : View
 {
 	@ObservedObject var taskWithProgress : DetachedTaskWithProgress
@@ -46,7 +46,7 @@ struct TaskWithProgressView : View
 
 
 //	doesn't have to be detatched, but so far, always using it that way
-@available(macOS 14, *)
+@available(macOS 14,iOS 16.0, *)
 public class DetachedTaskWithProgress : ObservableObject
 {
 	var showOkayOnSuccess = false
@@ -140,7 +140,7 @@ public class DetachedTaskWithProgress : ObservableObject
 	}
 }
 
-@available(macOS 13, *)
+@available(macOS 13,iOS 16.0, *)
 internal func LongPreviewTask(_ OnStep:(_ step:String)throws->Void) async throws
 {
 	try OnStep("one...")
@@ -155,7 +155,7 @@ internal func LongPreviewTask(_ OnStep:(_ step:String)throws->Void) async throws
 	print("Done")
 }
 
-@available(macOS 14, *)
+@available(macOS 14,iOS 17.0, *)
 #Preview
 {
 	@Previewable @State var runningTask : DetachedTaskWithProgress?

@@ -4,19 +4,19 @@ import SwiftUI
 
 public extension View
 {
-	@available(macOS 13, *)
+	@available(macOS 13,iOS 16.0, *)
 	func blackboxStyle(labelPadding:CGFloat) -> some View 
 	{
 		modifier(BlackBoxStyling(labelPadding: labelPadding))
 	}
 	
-	@available(macOS 13, *)
+	@available(macOS 13,iOS 16.0, *)
 	func blackboxStyle() -> some View 
 	{
 		modifier(BlackBoxStyling())
 	}
 	
-	@available(macOS 13, *)
+	@available(macOS 13,iOS 16.0, *)
 	func dismissableStyle(iconName:String?="exclamationmark.triangle", colour:Color = .red) -> some View 
 	{
 		modifier(DismissableBoxStyling(messageiconName: iconName, colour:colour))
@@ -127,7 +127,7 @@ public struct PokerToggle : ToggleStyle
 	}
 }
 
-@available(macOS 13, *)
+@available(macOS 13,iOS 16.0, *)
 struct BlackBoxStyling : ViewModifier
 {
 	var labelPadding = PokerButton.labelPadding
@@ -148,7 +148,7 @@ struct BlackBoxStyling : ViewModifier
 
 
 
-@available(macOS 13, *)
+@available(macOS 13,iOS 16.0, *)
 struct DismissableBoxStyling : ViewModifier
 {
 	var messageiconName : String? = "x.circle"
@@ -210,7 +210,7 @@ struct DismissableBoxStyling : ViewModifier
 }
 
 
-@available(macOS 14, *)
+@available(macOS 14,iOS 17.0, *)
 #Preview
 {
 	@Previewable @State var toggle = true
