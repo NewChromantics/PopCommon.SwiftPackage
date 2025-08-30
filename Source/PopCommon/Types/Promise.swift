@@ -1,8 +1,9 @@
 
 public class Promise<T>
 {
-	var result : T? = nil
-	var error : Error? = nil
+	public private(set) var result : T? = nil
+	public private(set) var error : Error? = nil
+	
 	public var isResolved : Bool 
 	{
 		return (result != nil) || (error != nil)
