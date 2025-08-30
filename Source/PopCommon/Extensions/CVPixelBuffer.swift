@@ -428,6 +428,7 @@ extension CVPixelBuffer
 		CVPixelBufferUnlockBaseAddress(self, [])
 	}
 	
+	@available(macOS 15.0, *)
 	public func Resize(width:Int,height:Int,forceOutputFormat:OSType?=nil) throws -> CVPixelBuffer
 	{
 		let ciImage = CIImage(cvPixelBuffer: self)
@@ -449,9 +450,17 @@ extension CVPixelBuffer
 		
 		let outputFormat = forceOutputFormat ?? self.pixelFormat
 		
+		//	allow use in metal
+		let options : [CFString:Any] = 
+		[	
+			kCVPixelBufferMetalCompatibilityKey:true,
+			kCVPixelBufferCGImageCompatibilityKey:true
+		]
+		
+		print("Resizing cvpixelbuffer from \(self.pixelFormatName) to \(CVPixelBufferGetPixelFormatName(outputFormat))")
 		// Create a new CVPixelBuffer
 		var outputPixelBuffer : CVPixelBuffer?
-		let status = CVPixelBufferCreate(kCFAllocatorDefault, width, height, outputFormat, nil, &outputPixelBuffer)
+		let status = CVPixelBufferCreate(kCFAllocatorDefault, width, height, outputFormat, options as CFDictionary, &outputPixelBuffer)
 		
 		if status != kCVReturnSuccess
 		{
