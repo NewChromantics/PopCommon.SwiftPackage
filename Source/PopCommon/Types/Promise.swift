@@ -58,3 +58,47 @@ public class Promise<T>
 		error = exception
 	}
 }
+
+public class TaskWithPromise<T> : Promise<T>
+{
+	private var taskWrapper : Task<Void,Never>!
+	
+	public init(detachedPriority:TaskPriority?=nil,theTask:@escaping () async throws->T) 
+	{
+		super.init()
+		
+		if let detachedPriority
+		{
+			self.taskWrapper = Task.detached(priority: detachedPriority)
+			{
+				await self.Run(theTask: theTask)
+			}
+		}
+		else
+		{
+			self.taskWrapper = Task
+			{
+				await Run(theTask:theTask)
+			}
+		}
+	}
+	
+	private func Run(theTask:@escaping () async throws->T) async
+	{
+		do
+		{
+			let result = try await theTask()
+			self.resolve(result)
+		}
+		catch
+		{
+			self.reject(error)
+		}
+	}
+	
+	deinit
+	{
+		taskWrapper.cancel()
+	}
+}
+
