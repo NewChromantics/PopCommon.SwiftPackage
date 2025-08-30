@@ -20,6 +20,12 @@ public struct CGImageError : LocalizedError
 
 extension CGImage
 {
+	public static func fromRgbBuffer(_ rgbBuffer:[UInt8],width:Int,height:Int) throws -> CGImage
+	{
+		var rgbBuffer = rgbBuffer
+		return try fromRgbBuffer(&rgbBuffer, width: width, height: height)
+	}
+		
 	public static func fromRgbBuffer(_ rgbBuffer:inout[UInt8],width:Int,height:Int) throws -> CGImage
 	{
 		let convert = 
@@ -62,6 +68,70 @@ extension CGImage
 		let alpha = CGImageAlphaInfo.premultipliedLast.rawValue
 		
 		let cgimage = try rgbaBuffer.withUnsafeMutableBytes
+		{
+			rgbaBufferPointer in
+			guard let context = CGContext(data: rgbaBufferPointer.baseAddress!, width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: alpha) else
+			{
+				throw CGImageError("Failed to create cg context")
+			}
+			
+			guard let cgImage = context.makeImage() else
+			{
+				throw CGImageError("Failed to create cg image")
+			}
+			return cgImage
+		}
+		
+		return cgimage
+	}
+	
+	public static func fromRgbaBuffer(_ rgbaBuffer:[UInt8],width:Int,height:Int) throws -> CGImage
+	{
+		var rgbaBuffer = rgbaBuffer
+		return try fromRgbaBuffer(&rgbaBuffer, width: width, height: height)
+	}
+	
+	public static func fromRgbaBuffer(_ rgbaBuffer:inout[UInt8],width:Int,height:Int) throws -> CGImage
+	{
+		let bytesPerPixel = 4
+		let bytesPerRow = bytesPerPixel * width
+		let bitsPerComponent = 8
+		
+		
+		let colorSpace = CGColorSpaceCreateDeviceRGB()
+		let alpha = CGImageAlphaInfo.premultipliedLast.rawValue
+		
+		let cgimage = try rgbaBuffer.withUnsafeMutableBytes
+		{
+			rgbaBufferPointer in
+			guard let context = CGContext(data: rgbaBufferPointer.baseAddress!, width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: alpha) else
+			{
+				throw CGImageError("Failed to create cg context")
+			}
+			
+			guard let cgImage = context.makeImage() else
+			{
+				throw CGImageError("Failed to create cg image")
+			}
+			return cgImage
+		}
+		
+		return cgimage
+	}
+	
+	
+	public static func fromAlphaBuffer(_ alphaBuffer:inout[UInt8],width:Int,height:Int) throws -> CGImage
+	{
+		let bytesPerPixel = 1
+		let bytesPerRow = bytesPerPixel * width
+		let bitsPerComponent = 8
+		
+		
+		let colorSpace = CGColorSpaceCreateDeviceGray()
+		//let colorSpace : CGColorSpace? = nil
+		let alpha = CGImageAlphaInfo.alphaOnly.rawValue
+		
+		let cgimage = try alphaBuffer.withUnsafeMutableBytes
 		{
 			rgbaBufferPointer in
 			guard let context = CGContext(data: rgbaBufferPointer.baseAddress!, width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: alpha) else
@@ -281,10 +351,17 @@ extension CGImage
 	{
 		let targetWidth = Int(targetSize.width)
 		let targetHeight = Int(targetSize.height)
+		let bytesPerComponent = 1
+		let bytesPerRow = targetWidth * 4 * bytesPerComponent
+		let colour = CGColorSpaceCreateDeviceRGB()
+		
+		let bitmapInfo = CGImageAlphaInfo.last.rawValue
+		let context = CGContext.init(data: nil, width: targetWidth, height: targetHeight, bitsPerComponent: 8*bytesPerComponent, bytesPerRow: bytesPerRow, space: colour, bitmapInfo: bitmapInfo)
+		/*
 		guard let context = CGContext.ARGBBitmapContext(width:targetWidth, height:targetHeight, withAlpha: true) else
 		{
 			return nil
-		}
+		}*/
 		context.draw(self, in: CGRect(x:0, y:0, width:targetWidth, height:targetHeight))
 		guard let outputImage = context.makeImage() else
 		{
@@ -292,8 +369,8 @@ extension CGImage
 		}
 		let outIsArgb = outputImage.alphaInfo == .first || outputImage.alphaInfo == .premultipliedFirst
 		return outputImage
-	}
-	
+	}*/
+	/*
 	public func resizeWithAccelerate(withSize targetSize: CGSize) -> CGImage?
 	{
 		let targetWidth = Int(targetSize.width)
@@ -374,6 +451,7 @@ public extension CGImage
 		let sourceBuffer = UnsafeBufferPointer<UInt8>( start: sourceData, count: sourceDataSize )
 		return try callback( sourceBuffer, width, height, rowStride, pixelFormat )
 	}
+	
 	
 	//	calculate pixelformat
 	//	using CVPixelPformat to match CVPixelBuffer
@@ -501,6 +579,40 @@ public extension CGImage
 
 public extension CGImage
 {
+	static func Allocate(width:Int,height:Int,channels:Int) throws -> CGImage
+	{
+		let colourSpace = try {
+			switch channels
+			{
+				case 1:	CGColorSpaceCreateDeviceGray()
+				case 3: CGColorSpaceCreateDeviceRGB()
+				default: throw CGImageError("Dont know how to make CGImage with \(channels) channels")
+			}
+		}()
+		
+		let bitmapInfo = CGImageAlphaInfo.none.rawValue | CGBitmapInfo.floatComponents.rawValue
+		
+		let bytesPerComponent = channels
+		let bytesPerRow = width * bytesPerComponent
+		let ptr : UnsafeMutableRawPointer? = nil
+		let context = CGContext(data: ptr,//UnsafeMutableRawPointer(mutating: ptr.baseAddress!),
+								width: width,
+								height: height,
+								bitsPerComponent: bytesPerComponent*8,
+								bytesPerRow: bytesPerRow,
+								space: colourSpace,
+								bitmapInfo: bitmapInfo)
+		guard let context else
+		{
+			throw CGImageError("Failed to make context")
+		}
+		guard let image = context.makeImage() else
+		{
+			throw CGImageError("Failed to make image from context")
+		}
+		return image
+	}
+
 	static func FromBytes(width:Int,bytes:inout [Float]) throws -> CGImage
 	{
 		let height = bytes.count / width
