@@ -12,6 +12,16 @@ public class Promise<T>
 	{
 	}
 	
+	//	returns nil if not yet resovled
+	public func GetResult() throws -> T?
+	{
+		if let error 
+		{
+			throw error
+		}
+		return result
+	}
+	
 	public func WaitAsTask() -> Task<T,Error>
 	{
 		return Task
