@@ -2,6 +2,7 @@
 	Utilities for CoreGraphics types
 */
 import CoreGraphics
+import simd
 
 
 func * (lhs: CGSize, rhs: CGSize) -> CGSize {
@@ -163,4 +164,19 @@ public extension CGRect
 		return lhs.offsetBy(dx: rhs.x, dy: rhs.y)
 	}
 	
+}
+
+public extension CGSize
+{
+	var simd_float2 : simd_float2
+	{
+		return simd.simd_float2(Float(self.width),Float(self.height))
+	}
+}
+public extension CGPoint
+{
+	var simd_float2 : simd_float2
+	{
+		return simd.simd_float2(Float(self.x),Float(self.y))
+	}
 }
