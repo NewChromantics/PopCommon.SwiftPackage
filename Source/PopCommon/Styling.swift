@@ -20,7 +20,7 @@ public extension View
 	func dismissableStyle(iconName:String?="exclamationmark.triangle", colour:Color = .red) -> some View 
 	{
 		modifier(DismissableBoxStyling(messageiconName: iconName, colour:colour))
-			.modifier(HoverCursorModifier())
+			.hoverCursor()
 		
 	}
 }
