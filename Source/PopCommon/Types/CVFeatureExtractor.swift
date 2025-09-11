@@ -10,10 +10,11 @@ public struct FrameMarker : Identifiable, Codable, Equatable
 	public var label : String
 	public var position : CGPoint
 	static var quantMax : Double { 65535 }
+	public var score : Float
 	
 	static func WithLabel(_ label:String,_ point:CGPoint) -> FrameMarker
 	{
-		return FrameMarker(label: label, position: point)
+		return FrameMarker(label: label, position: point, score:0)
 	}
 
 	static func Dequantize(x:UInt16,y:UInt16) -> CGPoint
@@ -21,6 +22,13 @@ public struct FrameMarker : Identifiable, Codable, Equatable
 		let xf = Double(x) / FrameMarker.quantMax
 		let yf = Double(y) / FrameMarker.quantMax
 		return CGPoint(x:xf,y:yf)
+	}
+	
+	public init(label:String,position:CGPoint,score:Float)
+	{
+		self.position = position
+		self.label = label
+		self.score = score
 	}
 	
 	func Quantize() -> (UInt16,UInt16)
@@ -152,8 +160,10 @@ public func GetBodyMarkers(bodyRequest:VNDetectHumanBodyPoseRequest) -> [FrameMa
 				}
 				let x = point.x
 				let y = point.y
+				let score = pointEntry.value.confidence
+				
 				let pos = CGPoint(x:x,y:y)
-				return FrameMarker( label:pointName, position:pos )
+				return FrameMarker( label:pointName, position:pos, score:score )
 			}
 			markers += groupMarkers
 		}
@@ -212,7 +222,8 @@ public func GetHandMarkers(bodyRequest:VNDetectHumanHandPoseRequest) -> [FrameMa
 					let x = point.x
 					let y = point.y
 					let pos = CGPoint(x:x,y:y)
-					return FrameMarker( label:pointName, position:pos )
+					let score = point.confidence
+					return FrameMarker( label:pointName, position:pos, score:score )
 				}
 				markers += groupMarkers
 			}

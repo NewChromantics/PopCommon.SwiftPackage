@@ -3,6 +3,7 @@ public class Promise<T>
 {
 	public private(set) var result : T? = nil
 	public private(set) var error : Error? = nil
+	public var isErrored : Bool		{	error != nil	}
 	
 	public var isResolved : Bool 
 	{

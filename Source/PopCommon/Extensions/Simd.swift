@@ -2,14 +2,22 @@ import simd
 import SwiftUI	//	angle
 
 
+//	swizzles
+public extension simd_float3
+{
+	var xyz0 : simd_float4	{	.init(x,y,z,0)	}
+	var xyz1 : simd_float4	{	.init(x,y,z,1)	}
+}
+
 public extension simd_float4
 {
-	//	simd4.xyz swizzle
-	var xyz : simd_float3
-	{
-		return simd_float3(x,y,z)
-	}
-	
+	var xyz : simd_float3	{	return simd_float3(x,y,z)	}
+}
+
+
+
+public extension simd_float4
+{
 	mutating func Normalise()
 	{
 		self = simd.normalize(self)
