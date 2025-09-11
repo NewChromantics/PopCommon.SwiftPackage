@@ -418,6 +418,7 @@ extension CGImage
 
 public extension CGImage
 {
+	var dimensions32 : (UInt32,UInt32)	{	(UInt32(self.width),UInt32(self.height))	}
 	var sizeBytes : Int		{	self.bytesPerRow * self.height	}
 	
 	func withUnsafePixels<Result>(_ callback:(UnsafeBufferPointer<UInt8>,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelFormat:OSType)throws->Result) throws -> Result
