@@ -6,9 +6,9 @@ import math_h	//	ceil()
 //	this can now be done with 
 //		import Algoritm
 //		let unique = Array( origArray.uniqued() )
-extension Array where Element: Hashable
+public extension Array where Element: Hashable
 {
-	public func reduce() -> Set<Self.Element>
+	func reduce() -> Set<Self.Element>
 	{
 		return Set(self.map{$0})
 	}
