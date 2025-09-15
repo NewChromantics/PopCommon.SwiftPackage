@@ -15,6 +15,11 @@ public func range(_ min:Float,_ max:Float,value:Float) -> Float
 	return (value-min) / (max-min)
 }
 
+public func range01(_ min:Float,_ max:Float,value:Float) -> Float
+{
+	return clamp( range(min,max,value:value), min:0, max: 1 )
+}
+
 //	matching simd order!
 public func clamp(_ x:Float,min:Float,max:Float) -> Float
 {
