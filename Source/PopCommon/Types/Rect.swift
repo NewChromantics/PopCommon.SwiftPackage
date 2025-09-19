@@ -104,6 +104,7 @@ public struct Rect
 	}
 	
 	//	returns nil if fully outside
+	//	cohen sutherland
 	public func ClipLine(p1:SIMD2<Int>,p2:SIMD2<Int>) -> (SIMD2<Int>,SIMD2<Int>)?
 	{
 		let region1 = GetClipRegion(x:p1.x,y:p1.y)
@@ -120,18 +121,21 @@ public struct Rect
 			return (p1,p2)
 		}
 		
-		//	cohen sutherland
-		var dx = Float(p2.x - p1.x)
-		var dy = Float(p2.y - p1.y)
-		
-		//	todo: catch /0 
-		let slopeY = dx / dy; // slope to use for possibly-vertical lines
-		let slopeX = dy / dx; // slope to use for possibly-horizontal lines
-		
 		let top = Float(top)
 		let left = Float(left)
 		let right = Float(right)
 		let bottom = Float(bottom)
+		
+		var point1f = simd_float2(Float(p1.x),Float(p1.y))
+		var point2f = simd_float2(Float(p2.x),Float(p2.y))
+
+		let dx = point2f.x - point1f.x
+		let dy = point2f.y - point1f.y
+		
+		//	todo: catch /0 
+		let slopeY = dx / dy // slope to use for possibly-vertical lines
+		let slopeX = dy / dx // slope to use for possibly-horizontal lines
+		
 		
 		func clipPoint(_ point:inout simd_float2)
 		{
@@ -149,19 +153,17 @@ public struct Rect
 			
 			if point.x > right
 			{
-				point.x = right
 				point.y = point.y + slopeX * (right - point.x)
+				point.x = right
 			}
-			
+
 			if point.x < left
 			{
-				point.x = left
 				point.y = point.y + slopeX * (left - point.x)
+				point.x = left
 			}
 		}
 		
-		var point1f = simd_float2(Float(p1.x),Float(p1.y))
-		var point2f = simd_float2(Float(p2.x),Float(p2.y))
 		clipPoint( &point1f )
 		clipPoint( &point2f )
 		
