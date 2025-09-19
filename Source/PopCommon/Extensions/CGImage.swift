@@ -421,6 +421,7 @@ public extension CGImage
 	var dimensions32 : (UInt32,UInt32)	{	(UInt32(self.width),UInt32(self.height))	}
 	var sizeBytes : Int		{	self.bytesPerRow * self.height	}
 	
+	
 	func withUnsafePixels<Result>(_ callback:(UnsafeBufferPointer<UInt8>,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelFormat:OSType)throws->Result) throws -> Result
 	{
 		let imageCg = self
@@ -451,6 +452,39 @@ public extension CGImage
 		
 		let sourceBuffer = UnsafeBufferPointer<UInt8>( start: sourceData, count: sourceDataSize )
 		return try callback( sourceBuffer, width, height, rowStride, pixelFormat )
+	}
+	
+	//	duplicate of above with async
+	func withUnsafePixels<Result>(_ callback:(UnsafeBufferPointer<UInt8>,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelFormat:OSType)async throws->Result) async throws -> Result
+	{
+		let imageCg = self
+		//let pixelFormatInfo = imageCg.pixelFormatInfo
+		let bitsPerPixel = imageCg.bitsPerPixel
+		let bitsPerComponent = imageCg.bitsPerComponent
+		let bytesPerPixel = bitsPerPixel / bitsPerComponent
+		//let bytesPerPixel2 = imageCg.bytesPerRow / width
+		let rowStride = imageCg.bytesPerRow / bytesPerPixel	//	some images are padded!
+		let channels = bytesPerPixel
+		guard let dataProvider = imageCg.dataProvider else
+		{
+			throw CGImageError("Failed to get data provider for image")
+		}
+		guard let pixelData = dataProvider.data else
+		{
+			throw CGImageError("Failed to get data provider.data for image")
+		}			
+		let sourceData : UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
+		let sourceDataSize = CFDataGetLength(pixelData)
+		let pixelFormat = try GetPixelFormat()
+		
+		//	expect alignment
+		if ( channels * rowStride * height != sourceDataSize )
+		{
+			throw CGImageError("Image data vs dimensions misalignment")
+		}
+		
+		let sourceBuffer = UnsafeBufferPointer<UInt8>( start: sourceData, count: sourceDataSize )
+		return try await callback( sourceBuffer, width, height, rowStride, pixelFormat )
 	}
 	
 	
