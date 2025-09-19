@@ -3,25 +3,27 @@
 	Int Rect type to compliment CGRect
  
 */
+import CoreGraphics
+import simd
 
 public struct Rect
 {
 	public struct ClipRegion : RawRepresentable
 	{
-		var rawValue: Int
+		public var rawValue: Int
 		
-		static let Inside = 0x0
-		static let Above = 0x01
-		static let Below = 0x02
-		static let LeftOf =	0x04
-		static let RightOf = 0x08
+		public static let Inside = 0x0
+		public static let Above = 0x01
+		public static let Below = 0x02
+		public static let LeftOf =	0x04
+		public static let RightOf = 0x08
 		
-		var isInside : Bool		{	self.rawValue == Self.Inside	}
-		var isOutside : Bool	{	!isInside	}
-		var isAbove : Bool		{	( self.rawValue & Self.Above ) != 0	}
-		var isBelow : Bool		{	( self.rawValue & Self.Below ) != 0	}
-		var isLeft : Bool		{	( self.rawValue & Self.LeftOf ) != 0	}
-		var isRight : Bool		{	( self.rawValue & Self.RightOf ) != 0	}
+		public var isInside : Bool		{	self.rawValue == Self.Inside	}
+		public var isOutside : Bool	{	!isInside	}
+		public var isAbove : Bool		{	( self.rawValue & Self.Above ) != 0	}
+		public var isBelow : Bool		{	( self.rawValue & Self.Below ) != 0	}
+		public var isLeft : Bool		{	( self.rawValue & Self.LeftOf ) != 0	}
+		public var isRight : Bool		{	( self.rawValue & Self.RightOf ) != 0	}
 		
 		public init(rawValue value:Int)
 		{
@@ -29,15 +31,24 @@ public struct Rect
 		}
 	}		
 	
-	var left : Int
-	var top : Int
-	var width : Int
-	var height : Int
-	var right : Int	{	left + width - 1 }
-	var bottom : Int	{	top + height - 1 }
-	var cgRect : CGRect	{	return CGRect(x: left, y: top, width: width, height: height)	}
-	var size2 : simd_float2		{	simd_float2(Float(width),Float(height))	}
-	var topLeft2 : simd_float2	{	simd_float2(Float(left),Float(top))	}
+	public var left : Int
+	public var top : Int
+	public var width : Int
+	public var height : Int
+	public var right : Int	{	left + width - 1 }
+	public var bottom : Int	{	top + height - 1 }
+	public var cgRect : CGRect	{	return CGRect(x: left, y: top, width: width, height: height)	}
+	public var size2 : simd_float2		{	simd_float2(Float(width),Float(height))	}
+	public var topLeft2 : simd_float2	{	simd_float2(Float(left),Float(top))	}
+	public var hypotenuse : Float		{	return hypot( Float(width), Float(height) )	}	//	sqrt( w*w + h*h )
+	
+	public init(left: Int, top: Int, width: Int, height: Int) 
+	{
+		self.left = left
+		self.top = top
+		self.width = width
+		self.height = height
+	}
 	
 	public func GetOriginalCoords(_ rectCoords:CGPoint) -> CGPoint
 	{
@@ -97,7 +108,10 @@ public struct Rect
 	{
 		let region1 = GetClipRegion(x:p1.x,y:p1.y)
 		let region2 = GetClipRegion(x:p2.x,y:p2.y)
-		if region1.isOutside && region2.isOutside
+		
+		//	if both above, or both left, its outside
+		//	gr: what if aboveleft + left?...
+		if region1.rawValue == region2.rawValue
 		{
 			return nil
 		}
