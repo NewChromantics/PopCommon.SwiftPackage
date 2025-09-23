@@ -19,7 +19,7 @@ let package = Package(
 		.library(
 			name: "PopCommon",
 			targets: [
-				"PopCommon","PopCommonObjc"
+				"PopCommon","PopCommonObjc","PopCommonTests"
 			]),
 	],
 	targets: [
@@ -31,6 +31,12 @@ let package = Package(
 		.target(
 			name: "PopCommonObjc",
 			dependencies: []
-		)
+		),
+		.testTarget(
+			name: "PopCommonTests",
+			dependencies: ["PopCommon"], 
+			path: "Tests"
+			)
+			
 	]
 )
