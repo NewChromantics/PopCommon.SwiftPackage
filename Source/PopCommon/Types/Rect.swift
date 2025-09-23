@@ -40,6 +40,7 @@ public struct Rect
 	public var cgRect : CGRect	{	return CGRect(x: left, y: top, width: width, height: height)	}
 	public var size2 : simd_float2		{	simd_float2(Float(width),Float(height))	}
 	public var topLeft2 : simd_float2	{	simd_float2(Float(left),Float(top))	}
+	public var topLeftInt2 : SIMD2<Int>	{	.init( left, top )	}
 	public var hypotenuse : Float		{	return hypot( Float(width), Float(height) )	}	//	sqrt( w*w + h*h )
 	
 	public init(left: Int, top: Int, width: Int, height: Int) 
@@ -80,6 +81,11 @@ public struct Rect
 		return uv
 	}
 	
+	public func Contains(x:Int,y:Int) -> Bool
+	{
+		return GetClipRegion(x: x, y: y).isInside
+	}
+	
 	public func GetClipRegion(x:Int,y:Int) -> ClipRegion
 	{
 		var region = ClipRegion.Inside
@@ -109,16 +115,18 @@ public struct Rect
 	{
 		let region1 = GetClipRegion(x:p1.x,y:p1.y)
 		let region2 = GetClipRegion(x:p2.x,y:p2.y)
+
+		//	both inside, line is inside
+		if region1.isInside && region1.isInside
+		{
+			return (p1,p2)
+		}
 		
 		//	if both above, or both left, its outside
 		//	gr: what if aboveleft + left?...
 		if region1.rawValue == region2.rawValue
 		{
 			return nil
-		}
-		if region1.isInside && region1.isInside
-		{
-			return (p1,p2)
 		}
 		
 		let top = Float(top)
@@ -131,10 +139,12 @@ public struct Rect
 
 		let dx = point2f.x - point1f.x
 		let dy = point2f.y - point1f.y
+		let verticalLine = dx == 0
+		let horizontalLine = dy == 0
 		
 		//	todo: catch /0 
-		let slopeY = dx / dy // slope to use for possibly-vertical lines
-		let slopeX = dy / dx // slope to use for possibly-horizontal lines
+		let slopeY = horizontalLine ? 0 : dx / dy // slope to use for possibly-vertical lines
+		let slopeX = verticalLine ? 0 : dy / dx // slope to use for possibly-horizontal lines
 		
 		
 		func clipPoint(_ point:inout simd_float2)
