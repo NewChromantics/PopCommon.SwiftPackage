@@ -19,7 +19,8 @@ let package = Package(
 		.library(
 			name: "PopCommon",
 			targets: [
-				"PopCommon","PopCommonObjc","PopCommonTests"
+				"PopCommon","PopCommonObjc"
+				//,"PopCommonTests"	this is making projects fail
 			]),
 	],
 	targets: [
