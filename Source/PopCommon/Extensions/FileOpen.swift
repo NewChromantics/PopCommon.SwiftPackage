@@ -7,12 +7,21 @@ import UniformTypeIdentifiers
 //	nil if cancelled
 @available(macOS 11.0, *)	//	for UTTypes filter
 @MainActor
-public func SaveFileDialog(contentTypes:[UTType]) async throws -> URL?
+public func SaveFileDialog(defaultFilename:String?=nil,contentTypes:[UTType]) async throws -> (URL,UTType?)?
 {
 #if canImport(AppKit)
-	let panel = NSSavePanel()
+	var panel = NSSavePanel()
 	panel.canCreateDirectories = true
 	panel.allowedContentTypes = contentTypes
+	if let defaultFilename
+	{
+		panel.nameFieldStringValue = defaultFilename
+	}
+	
+	if #available(macOS 15.0, *) 
+	{
+		panel.showsContentTypes = true
+	}
 	
 	let openResult = panel.runModal()
 	
@@ -30,7 +39,18 @@ public func SaveFileDialog(contentTypes:[UTType]) async throws -> URL?
 	{
 		throw RuntimeError("File save, but no file")
 	}
-	return filePath
+	let contentType = 
+	{
+		if #available(macOS 15.0, *) 
+		{
+			return panel.currentContentType
+		}
+		else
+		{
+			return nil
+		}
+	}()
+	return (filePath,contentType)
 #else
 	//	todo: on ios, some 
 	throw RuntimeError("File import not supported")
