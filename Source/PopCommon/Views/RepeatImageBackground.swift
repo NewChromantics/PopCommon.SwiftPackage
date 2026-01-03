@@ -5,7 +5,8 @@ import SwiftUI
 public struct RepeatImageBackground : ViewModifier
 {
 	var image : Image
-	var hueRotation = Angle(degrees: 0) 
+	var hueRotation = Angle(degrees: 0)
+	var tint : Color? = nil
 	
 	public func body(content: Content) -> some View 
 	{
@@ -15,6 +16,7 @@ public struct RepeatImageBackground : ViewModifier
 			Rectangle()
 				.foregroundStyle( .image( image ) )
 				.hueRotation(hueRotation)
+				.tint(tint)
 		}
 	}
 }
@@ -22,9 +24,9 @@ public struct RepeatImageBackground : ViewModifier
 @available(macOS 12.0, *)
 public extension View 
 {
-	func repeatImageBackground(_ image:Image,hueRotation:Angle=Angle.degrees(0)) -> some View 
+	func repeatImageBackground(_ image:Image,hueRotation:Angle=Angle.degrees(0),tint:Color?=nil) -> some View 
 	{
-		modifier(RepeatImageBackground(image:image,hueRotation:hueRotation))
+		modifier(RepeatImageBackground(image:image,hueRotation:hueRotation,tint: tint))
 	}
 }
 
