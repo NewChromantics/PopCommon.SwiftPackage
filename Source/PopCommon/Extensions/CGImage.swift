@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import VideoToolbox
 import Accelerate
 
@@ -581,6 +582,17 @@ public extension CGImage
 			throw CGImageError("Failed to make copy")
 		}
 		return copy
+	}
+	
+	@available(macOS 11.0, *)
+	func EncodeTo(contentType:UTType,qualityPercent:Int=99) throws -> Data
+	{
+		switch contentType
+		{
+			case .jpeg:	return try ToJpeg(qualityPercent: qualityPercent)
+			default:
+				throw CGImageError("Dont know how to encode \(contentType)")
+		}
 	}
 	
 	func ToJpeg(qualityPercent:Int=99) throws -> Data
