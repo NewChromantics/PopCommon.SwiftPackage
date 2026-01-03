@@ -12,7 +12,17 @@ public extension Array where Element: Hashable
 	{
 		return Set(self.map{$0})
 	}
-	
+}
+
+//	https://stackoverflow.com/a/30593673/355753
+//	Array[safeIndex:99999] returns nil if oob
+extension Collection 
+{
+	// Returns the element at the specified index if it is within bounds, otherwise nil.
+	subscript(safe index: Index) -> Element? 
+	{
+		indices.contains(index) ? self[index] : nil
+	}
 }
 
 //	https://stackoverflow.com/a/49046981/355753
