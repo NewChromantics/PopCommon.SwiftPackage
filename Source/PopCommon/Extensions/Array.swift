@@ -16,7 +16,7 @@ public extension Array where Element: Hashable
 
 //	https://stackoverflow.com/a/30593673/355753
 //	Array[safeIndex:99999] returns nil if oob
-extension Collection 
+public extension Collection 
 {
 	// Returns the element at the specified index if it is within bounds, otherwise nil.
 	subscript(safe index: Index) -> Element? 
@@ -26,7 +26,7 @@ extension Collection
 }
 
 //	https://stackoverflow.com/a/49046981/355753
-extension Sequence where Element : Numeric 
+public extension Sequence where Element : Numeric 
 {
 	//	Returns the sum of all elements in the collection
 	public func sum() -> Element 
