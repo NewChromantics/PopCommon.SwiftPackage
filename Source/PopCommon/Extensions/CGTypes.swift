@@ -66,6 +66,12 @@ extension CGPoint
 	{
 		return CGPoint( x:lhs.x+rhs.x, y:lhs.y+rhs.y )
 	}
+	
+	public static func -(_ left: CGPoint, _ right: CGPoint)->CGPoint
+	{
+		return .init(x: left.x-right.x, y: left.y-right.y)
+	}
+
 }
 
 
