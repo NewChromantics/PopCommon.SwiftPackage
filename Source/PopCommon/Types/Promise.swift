@@ -1,4 +1,8 @@
-
+/*
+	More javascript style promise object
+ 
+	Replace with my new SendablePromise
+*/
 public class Promise<T>
 {
 	public private(set) var result : T? = nil
