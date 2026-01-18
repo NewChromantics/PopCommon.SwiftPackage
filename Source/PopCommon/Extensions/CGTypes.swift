@@ -46,35 +46,6 @@ extension CGSize
 	public var asCgPoint : CGPoint	{	CGPoint(x:self.width,y:self.height)	}
 }
 
-extension CGPoint
-{
-	public var asCgSize : CGSize	{	CGSize(width:self.x,height:self.y)	}
-
-	public static func +=(lhs: inout CGPoint, rhs: CGPoint)
-	{
-		lhs.x += rhs.x
-		lhs.y += rhs.y
-	}
-	
-	public static func -=(lhs: inout CGPoint, rhs: CGPoint)
-	{
-		lhs.x -= rhs.x
-		lhs.y -= rhs.y
-	}
-	
-	public static func + (lhs: CGPoint, rhs: CGPoint) -> CGPoint
-	{
-		return CGPoint( x:lhs.x+rhs.x, y:lhs.y+rhs.y )
-	}
-	
-	public static func -(_ left: CGPoint, _ right: CGPoint)->CGPoint
-	{
-		return .init(x: left.x-right.x, y: left.y-right.y)
-	}
-
-}
-
-
 
 public func -(lhs: CGRect?, rhs: CGPoint?) -> CGRect?
 {
@@ -91,22 +62,133 @@ public func -(lhs: CGRect?, rhs: CGPoint?) -> CGRect?
 
 
 
+//	nice accessors
 public extension CGRect
 {
-	var center : CGPoint
+	//	these are no longer corrected and assume view.isFlipped
+	//	where origin == topleft
+	var top : CGFloat			{	self.minY	}
+	var bottom : CGFloat		{	self.maxY	}
+	var left : CGFloat			
 	{
-		let x = self.origin.x + (self.width / 2.0)
-		let y = self.origin.y + (self.height / 2.0)
-		return CGPoint(x:x,y:y)	
+		get { self.minX }
+		set { origin.x = newValue	}
+	}
+	var right : CGFloat
+	{
+		get	{	self.maxX	}
+		set	{	size.width = newValue - minX	}
+	}
+	var middleLeft : CGPoint	{	CGPoint( x: left, y:midY )	}
+	var middleRight : CGPoint	{	CGPoint( x: right, y:midY )	}
+	var center : CGPoint		{	CGPoint(x: midX,y: midY)	}
+	
+	var topLeft : CGPoint		{	CGPoint( x: left, y:top )	}
+	var topCenter : CGPoint		{	CGPoint( x: midX, y:top )	}
+	var topRight : CGPoint		{	CGPoint( x: right, y:top )	}
+	
+	var bottomLeft : CGPoint	{	CGPoint( x: left, y:bottom )	}
+	var bottomCenter : CGPoint	{	CGPoint( x: midX, y:bottom )	}
+	var bottomRight : CGPoint	{	CGPoint( x: right, y:bottom )	}
+	
+	/*	gr: this keeps causing ambigious conflicts when importing coregraphics, giving up using it
+	//	add a setter for these native accessors
+	var width : CGFloat
+	{
+		get{	self.size.width	}
+		set{	self.size.width = newValue	}
+	}
+	var height : CGFloat
+	{
+		get{	self.size.height	}
+		set{	self.size.height = newValue	}
+	}
+	*/
+}
+
+
+//	operators
+public extension CGRect
+{	
+	static func +=(lhs: inout CGRect, rhs: CGPoint)
+	{
+		lhs.origin += rhs
 	}
 	
-	var left : CGFloat	{	return self.origin.x	}
-	var right : CGFloat	{	return self.origin.x + self.size.width	}
-	var top : CGFloat	{	return self.origin.y	}
-	var bottom : CGFloat	{	return self.origin.y + self.size.height	}
-	var topLeft : CGPoint	{	return self.origin	}
-	var bottomRight : CGPoint	{	return CGPoint(x:right,y:bottom)	}
+	static func -=(lhs: inout CGRect, rhs: CGPoint)
+	{
+		lhs.origin -= rhs
+	}
 	
+	static func +(lhs: CGRect, rhs: CGPoint?) -> CGRect?
+	{
+		guard let rhs else
+		{
+			return nil
+		}
+		return lhs.offsetBy(dx: rhs.x, dy: rhs.y)
+	}
+}
+
+//	nice inits
+public extension CGRect
+{
+	init(_ x:CGFloat,_ y:CGFloat,width:CGFloat,height:CGFloat)
+	{
+		self.init( origin: CGPoint(x: x, y: y), size: CGSize(width: width, height: height))
+	}
+	
+	init(center:CGPoint,width:CGFloat,height:CGFloat)
+	{
+		let x = center.x - (width/2)
+		let y = center.y - (height/2)
+		self.init( origin: CGPoint(x: x, y: y), size: CGSize(width: width, height: height))
+	}
+	
+	init(accumulate rects:[CGRect])
+	{
+		if rects.count == 0
+		{
+			self.init()
+		}
+		else if rects.count == 1
+		{
+			self.init(origin: rects[0].origin, size: rects[0].size )
+		}
+		else
+		{
+			let points = rects.flatMap{ [$0.topLeft,$0.bottomRight] }
+			self.init(accumulate:points)
+		}
+	}
+	
+	init(accumulate points:[CGPoint])
+	{
+		var minx = points.first?.x ?? CGFloat.infinity
+		var maxx = points.first?.x ?? CGFloat.infinity
+		var miny = points.first?.y ?? CGFloat.infinity
+		var maxy = points.first?.y ?? CGFloat.infinity
+		
+		for point in points
+		{
+			minx = min( minx, point.x )
+			miny = min( miny, point.y )
+			maxx = max( maxx, point.x )
+			maxy = max( maxy, point.y )
+		}
+		
+		let width = maxx - minx
+		let height = maxy - miny
+		self.init(minx,miny,width:width,height: height)
+	}
+	
+}
+
+
+
+
+public extension CGRect
+{
 	//	turn 0...1 inside this rect to parent space
 	func expandNormalised(_ boundsPos:CGPoint) -> CGPoint
 	{
@@ -157,38 +239,200 @@ public extension CGRect
 		return CGRect( origin:NewTopLeft, size:CGSize(width:width,height:height) )
 	}
 	
-	static func +=(lhs: inout CGRect, rhs: CGPoint)
+	
+	
+	
+	
+	func GetSubRect(_ chunkX:Int,_ chunkY:Int,chunksWide:Int,chunksHigh:Int) -> CGRect
 	{
-		lhs.origin += rhs
+		let chunksWide = max(1,chunksWide)
+		let chunksHigh = max(1,chunksHigh)
+		var chunkRect = self
+		chunkRect.size.width /= CGFloat(chunksWide)
+		chunkRect.size.height /= CGFloat(chunksHigh)
+		
+		var subRect = chunkRect
+		subRect.origin.x += CGFloat(chunkX) * chunkRect.width
+		subRect.origin.y += CGFloat(chunkY) * chunkRect.height
+		return subRect
 	}
 	
-	static func -=(lhs: inout CGRect, rhs: CGPoint)
+	func Split(chunksWide:Int,chunksHigh:Int) -> [CGRect]
 	{
-		lhs.origin -= rhs
-	}
-	
-	static func +(lhs: CGRect, rhs: CGPoint?) -> CGRect?
-	{
-		guard let rhs else
+		let chunksWide = max(1,chunksWide)
+		let chunksHigh = max(1,chunksHigh)
+		var chunkRect = self
+		chunkRect.size.width /= CGFloat(chunksWide)
+		chunkRect.size.height /= CGFloat(chunksHigh)
+		
+		var chunkRects : [CGRect] = []
+		for x in 0..<chunksWide
 		{
-			return nil
+			for y in 0..<chunksHigh
+			{
+				var subRect = chunkRect
+				subRect.origin.x += CGFloat(x) * chunkRect.width
+				subRect.origin.y += CGFloat(y) * chunkRect.height
+				chunkRects.append(subRect)
+			}
 		}
-		return lhs.offsetBy(dx: rhs.x, dy: rhs.y)
+		return chunkRects
 	}
 	
+	
+	//	get a sub-rect of a size, centered on/within this rect
+	//	passing nil for dimension uses existing
+	func GetCenteredRect(width:CGFloat?,height:CGFloat?=nil) -> CGRect
+	{
+		var subRect = self
+		subRect.size.width = width ?? subRect.width
+		subRect.size.height = height ?? subRect.height
+		subRect.origin.x = self.midX - (subRect.width / 2.0)
+		subRect.origin.y = self.midY - (subRect.height / 2.0)
+		return subRect
+	}
+	
+	func SubtractPosition(_ offset:CGPoint) -> CGRect
+	{
+		let x = self.origin.x - offset.x
+		let y = self.origin.y - offset.y
+		return CGRect(x, y, width: width, height: height)
+	}
+	
+	func Move(_ offset:CGPoint) -> CGRect
+	{
+		let x = self.origin.x + offset.x
+		let y = self.origin.y + offset.y
+		return CGRect(x, y, width: width, height: height)
+	}
+	
+	func WithLeftRight(_ left:CGFloat,_ right:CGFloat) -> CGRect
+	{
+		let width = right - left
+		return CGRect(x:left, y:self.minY, width:width, height:self.height)
+	}
+	
+	func contains(y:CGFloat) -> Bool
+	{
+		return y >= minY && y <= maxY
+	}
+	
+	
+	
+	func cutLeft(cutPx:CGFloat) -> CGRect
+	{
+		let x = minX + cutPx
+		let w = self.width - cutPx
+		return CGRect(x, minY, width: w, height: self.height)
+	}
+	
+	func cutRight(cutPx:CGFloat) -> CGRect
+	{
+		let w = self.width - cutPx
+		return CGRect(minX, minY, width: w, height: self.height)
+	}
+	
+	func leftSlice(cutPx:CGFloat) -> CGRect
+	{
+		return CGRect(minX, minY, width: cutPx, height: self.height)
+	}
+	
+	func rightSlice(cutPx:CGFloat) -> CGRect
+	{
+		let x = self.maxX - cutPx
+		return CGRect(x, minY, width: cutPx, height: self.height)
+	}
+	
+	
+	
+	//	cut from origin rather than "Top"
+	func cutOriginY(cutPx:CGFloat) -> CGRect
+	{
+		let y = origin.y - cutPx
+		let h = self.height - cutPx
+		return CGRect(minX, y, width: width, height: height)
+	}
+	
+	//	slice a rect off self and return it
+	mutating func popFromOriginY(cutPx:CGFloat) -> CGRect
+	{
+		//	cut this off
+		let slice = CGRect(x:minX,y:minY,width: width,height: cutPx)
+		
+		self.origin.y += cutPx
+		self.size.height -= cutPx
+		return slice
+	}
+	
+	mutating func popFromLeft(cutPx:CGFloat) -> CGRect
+	{
+		//	cut this off
+		let slice = CGRect(x:minX,y:minY,width: cutPx,height: height)
+		
+		self.origin.x += cutPx
+		self.size.width -= cutPx
+		return slice
+	}
+	
+	//	slice a rect off self and return it
+	mutating func popFromTop(cutPx:CGFloat) -> CGRect
+	{
+		//	cut this off
+		let slice = CGRect(x:minX,y:minY,width: width,height: cutPx)
+		
+		self.origin.y += cutPx
+		self.size.height -= cutPx
+		return slice
+	}
+	
+	//	slice a rect off self and return it
+	mutating func popFromBottom(cutPx:CGFloat) -> CGRect
+	{
+		//	cut this off
+		let slice = CGRect(x:minX,y:bottom-cutPx,width: width,height: cutPx)
+		self.size.height -= cutPx
+		return slice
+	}
+	
+	mutating func restrainToParent(_ parent:CGRect)
+	{
+		/*
+		 self.origin.x = max( self.origin.x, parent.origin.x )
+		 self.origin.y = max( self.origin.y, parent.origin.y )
+		 let overflowx = max( 0, self.right - parent.right )
+		 let overflowy = max( 0, self.top - parent.top )
+		 self.size.width -= overflowx
+		 self.size.height -= overflowy*/
+	}
+	
+	func inside(parent:CGRect) -> Bool
+	{
+		if minX < parent.minX
+		{
+			return false
+		}
+		if minY < parent.minY
+		{
+			return false
+		}
+		if maxX > parent.maxX
+		{
+			return false
+		}
+		if maxY > parent.maxY
+		{
+			return false
+		}
+		return true
+	}
 }
+
+
 
 public extension CGSize
 {
 	var simd_float2 : simd_float2
 	{
 		return simd.simd_float2(Float(self.width),Float(self.height))
-	}
-}
-public extension CGPoint
-{
-	var simd_float2 : simd_float2
-	{
-		return simd.simd_float2(Float(self.x),Float(self.y))
 	}
 }
