@@ -79,6 +79,20 @@ public extension PublisherPublisher
 		publisherPublisherObservers.append(observer)
 	}
 	
+	func watch<Value>(_ pub:inout Published<Value>,onChanged:@escaping()->Void)
+	{
+		watch(&pub)
+		{
+			changingValueTo in
+			//	instead of callback now, defer to when we [assume] actual data will be updated
+			DispatchQueue.main.async
+			{
+				onChanged()
+			}
+		}
+	}
+	
+	
 	
 	func watch<Value>(_ pub:Published<Value>.Publisher,onChangingTo:@escaping(Value)->Void)
 	{
