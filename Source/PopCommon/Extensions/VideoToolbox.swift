@@ -6,7 +6,7 @@ public struct VideoToolboxError : LocalizedError
 	let result : OSStatus
 	let context : String
 	
-	init?(_ result:OSStatus,context:String)
+	public init?(_ result:OSStatus,context:String)
 	{
 		if result == S_OK
 		{
