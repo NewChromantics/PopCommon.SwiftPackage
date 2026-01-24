@@ -13,10 +13,17 @@ public struct RepeatImageBackground : ViewModifier
 		content
 			.background
 		{
-			Rectangle()
-				.foregroundStyle( .image( image ) )
-				.hueRotation(hueRotation)
-				.tint(tint)
+			ZStack
+			{
+				Rectangle()
+					.foregroundStyle( .image( image ) )
+					.hueRotation(hueRotation)
+				//	gr: this tint isnt having an effect any more? (only in dark mode??)
+				//.tint(tint)
+				//.blendMode(.multiply)
+				Rectangle()
+					.fill( tint ?? .clear )
+			}
 		}
 	}
 }
