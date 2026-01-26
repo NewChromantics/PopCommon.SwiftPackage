@@ -12,8 +12,14 @@ import Combine
 @available(macOS 12.0, *)
 public class SendablePromise<Result> : @unchecked Sendable
 {
-	var finishedPromise : Future<Result,Error>.Promise!
-	var finishedFuture : Future<Result,Error>!
+	private var finishedPromise : Future<Result,Error>.Promise!
+	private var finishedFuture : Future<Result,Error>!
+	
+	//	special introspection
+	//	gr: should be an enum
+	public var isErrored : Bool { hasError != nil }
+	public private(set) var hasError : Error? = nil	
+	public private(set) var isResolved : Bool = false
 	
 	public init()
 	{
@@ -40,11 +46,13 @@ public class SendablePromise<Result> : @unchecked Sendable
 	
 	public func Resolve(_ value:Result)
 	{
+		self.isResolved = true
 		self.finishedPromise(.success(value))
 	}
 	
 	public func Reject(_ error:Error)
 	{
+		self.hasError = error
 		self.finishedPromise(.failure(error))
 	}
 }
