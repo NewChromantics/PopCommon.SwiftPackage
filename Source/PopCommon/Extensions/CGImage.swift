@@ -347,22 +347,29 @@ public extension UIImage
 
 extension CGImage
 {
-	/*
-	public func resize(withSize targetSize: CGSize) -> CGImage?
+	public func Resized(toSize targetSize: CGSize,quality:CGInterpolationQuality = .default) throws -> CGImage
 	{
 		let targetWidth = Int(targetSize.width)
 		let targetHeight = Int(targetSize.height)
 		let bytesPerComponent = 1
 		let bytesPerRow = targetWidth * 4 * bytesPerComponent
 		let colour = CGColorSpaceCreateDeviceRGB()
+
+		//let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue
+		let bitmapInfo = self.bitmapInfo
+		guard var context = CGContext.init(data: nil, width: targetWidth, height: targetHeight, bitsPerComponent: 8*bytesPerComponent, bytesPerRow: bytesPerRow, space: colour, bitmapInfo: bitmapInfo) else
+		{
+			throw RuntimeError("Failed to create CGContext \(targetWidth)x\(targetHeight) for cgimage resize")
+		}
 		
-		let bitmapInfo = CGImageAlphaInfo.last.rawValue
-		let context = CGContext.init(data: nil, width: targetWidth, height: targetHeight, bitsPerComponent: 8*bytesPerComponent, bytesPerRow: bytesPerRow, space: colour, bitmapInfo: bitmapInfo)
+		context.interpolationQuality = .high
+		context.draw(self, in: CGRect(x: 0, y: 0, width: targetWidth, height: targetHeight))
+		
 		/*
 		guard let context = CGContext.ARGBBitmapContext(width:targetWidth, height:targetHeight, withAlpha: true) else
 		{
 			return nil
-		}*/
+		}
 		context.draw(self, in: CGRect(x:0, y:0, width:targetWidth, height:targetHeight))
 		guard let outputImage = context.makeImage() else
 		{
@@ -370,7 +377,13 @@ extension CGImage
 		}
 		let outIsArgb = outputImage.alphaInfo == .first || outputImage.alphaInfo == .premultipliedFirst
 		return outputImage
-	}*/
+		 */
+		guard let outputImage = context.makeImage() else
+		{
+			throw RuntimeError("Failed to get image from context after drawing in CGImage::Resize")
+		}
+		return outputImage
+	}
 	/*
 	public func resizeWithAccelerate(withSize targetSize: CGSize) -> CGImage?
 	{
