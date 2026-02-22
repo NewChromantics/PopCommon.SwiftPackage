@@ -1,4 +1,8 @@
 import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
+//	else using alias
 
 
 public extension UIColor
