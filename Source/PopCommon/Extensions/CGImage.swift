@@ -435,18 +435,68 @@ public extension CGImage
 	var dimensions32 : (UInt32,UInt32)	{	(UInt32(self.width),UInt32(self.height))	}
 	var sizeBytes : Int		{	self.bytesPerRow * self.height	}
 	
+	public struct ImageMeta
+	{
+		public var width : Int
+		public var rowWidth : Int	//	could be padded
+		public var height : Int
+		public var bytesPerPixel : Int
+		public var channels : Int			//	should get/match from pixel format
+		public var pixelFormat : OSType
+		public var bytesPerComponent : Int	{	bytesPerPixel * channels	}
+		public var bytesPerRow : Int		{	bytesPerPixel * rowWidth	}
+		public var byteSize : Int			{	bytesPerPixel * rowWidth * height	}
+	}
 	
-	func withUnsafePixels<Result>(_ callback:(UnsafeBufferPointer<UInt8>,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelFormat:OSType)throws->Result) throws -> Result
+	public func GetImageMeta() throws -> ImageMeta
 	{
 		let imageCg = self
+		let pixelFormatName = imageCg.pixelFormatName
 		//let pixelFormatInfo = imageCg.pixelFormatInfo
 		let bitsPerPixel = imageCg.bitsPerPixel
 		let bitsPerComponent = imageCg.bitsPerComponent
-		let bytesPerPixel = bitsPerPixel / bitsPerComponent
-		//let bytesPerPixel2 = imageCg.bytesPerRow / width
-		let rowStride = imageCg.bytesPerRow / bytesPerPixel	//	some images are padded!
-		let channels = bytesPerPixel
-		guard let dataProvider = imageCg.dataProvider else
+		//let bytesPerPixel = bitsPerPixel / bitsPerComponent
+		let bytesPerPixel = bitsPerPixel / 8
+		let channels = bitsPerPixel / bitsPerComponent
+		let bytesPerComponent = bitsPerPixel / bitsPerComponent
+		let rowWidth = imageCg.bytesPerRow / bytesPerPixel	//	some images are padded!
+		let pixelFormat = try GetPixelFormat()
+		return ImageMeta(width: self.width, rowWidth: rowWidth, height: self.height, bytesPerPixel: bytesPerPixel, channels: channels, pixelFormat: pixelFormat)
+	}
+	
+	func withUnsafePixels<Result>(_ callback:(UnsafeBufferPointer<UInt8>,_ imageMeta:ImageMeta)throws->Result) throws -> Result
+	{
+		let meta = try self.GetImageMeta()
+		
+		guard let dataProvider = self.dataProvider else
+		{
+			throw CGImageError("Failed to get data provider for image")
+		}
+		guard let pixelData = dataProvider.data else
+		{
+			throw CGImageError("Failed to get data provider.data for image")
+		}			
+		let sourceData : UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
+		let sourceDataSize = CFDataGetLength(pixelData)
+		let pixelFormatName = self.pixelFormatName
+
+		//	expect alignment
+		if ( meta.byteSize != sourceDataSize )
+		{
+			let byteSize = meta.byteSize
+			throw CGImageError("Image(\(pixelFormatName)) data(\(sourceDataSize)) vs dimensions (\(byteSize)) misalignment")
+		}
+		
+		let sourceBuffer = UnsafeBufferPointer<UInt8>( start: sourceData, count: sourceDataSize )
+		return try callback( sourceBuffer, meta )
+	}
+	
+	//	duplicate of above with async
+	func withUnsafePixels<Result>(_ callback:(UnsafeBufferPointer<UInt8>,_ imageMeta:ImageMeta)async throws->Result) async throws -> Result
+	{
+		let meta = try self.GetImageMeta()
+		
+		guard let dataProvider = self.dataProvider else
 		{
 			throw CGImageError("Failed to get data provider for image")
 		}
@@ -457,19 +507,19 @@ public extension CGImage
 		let sourceData : UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
 		let sourceDataSize = CFDataGetLength(pixelData)
 		let pixelFormat = try GetPixelFormat()
-
+		
 		//	expect alignment
-		if ( channels * rowStride * height != sourceDataSize )
+		if ( meta.byteSize != sourceDataSize )
 		{
 			throw CGImageError("Image data vs dimensions misalignment")
 		}
 		
 		let sourceBuffer = UnsafeBufferPointer<UInt8>( start: sourceData, count: sourceDataSize )
-		return try callback( sourceBuffer, width, height, rowStride, pixelFormat )
+		return try await callback( sourceBuffer, meta )
 	}
-	
-	//	duplicate of above with async
-	func withUnsafePixels<Result>(_ callback:(UnsafeBufferPointer<UInt8>,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelFormat:OSType)async throws->Result) async throws -> Result
+	/*
+	//	for float pixels
+	func withUnsafePixels<Result>(_ callback:(UnsafeBufferPointer<Float>,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelFormat:OSType)async throws->Result) async throws -> Result
 	{
 		let imageCg = self
 		//let pixelFormatInfo = imageCg.pixelFormatInfo
@@ -500,7 +550,7 @@ public extension CGImage
 		let sourceBuffer = UnsafeBufferPointer<UInt8>( start: sourceData, count: sourceDataSize )
 		return try await callback( sourceBuffer, width, height, rowStride, pixelFormat )
 	}
-	
+	*/
 	
 	//	calculate pixelformat
 	//	using CVPixelPformat to match CVPixelBuffer
@@ -536,6 +586,11 @@ public extension CGImage
 		if channels == 2 && bitsPerComponent == 32 && isFloatFormat
 		{
 			return kCVPixelFormatType_OneComponent32Float
+		}
+		
+		if channels == 4 && bitsPerComponent == 32 && isFloatFormat
+		{
+			return kCVPixelFormatType_128RGBAFloat
 		}
 		
 		if bitsPerComponent == 8
@@ -637,31 +692,85 @@ public extension CGImage
 }
 
 
-public extension CGImage
+private struct CGImageMeta
 {
-	static func Allocate(width:Int,height:Int,channels:Int) throws -> CGImage
+	enum ComponentType
 	{
-		let colourSpace = try {
+		case Float
+		case Byte
+		
+		var size : Int
+		{
+			switch self
+			{
+				case .Float:	4
+				case .Byte:		1
+			}
+		}
+	}
+	var bitmapInfo : CGBitmapInfo
+	var colourSpace : CGColorSpace
+	var bytesPerComponent : Int
+	var bytesPerRow : Int
+	var width : Int
+	var height : Int
+	
+	//	gr: change
+	init(width:Int,height:Int,channels:Int,componentType:ComponentType) throws
+	{
+		self.width = width
+		self.height = height
+		
+		colourSpace = try {
 			switch channels
 			{
 				case 1:	CGColorSpaceCreateDeviceGray()
-				case 3: CGColorSpaceCreateDeviceRGB()
+				case 3, 4: CGColorSpaceCreateDeviceRGB()
 				default: throw CGImageError("Dont know how to make CGImage with \(channels) channels")
 			}
 		}()
 		
-		let bitmapInfo = CGImageAlphaInfo.none.rawValue | CGBitmapInfo.floatComponents.rawValue
+		let hasAlpha = channels == 4
+		let alphaInfo = hasAlpha ? CGImageAlphaInfo.premultipliedLast.rawValue : CGImageAlphaInfo.none.rawValue
+		let floatComponentsFlag = componentType == .Float ? CGBitmapInfo.floatComponents.rawValue : 0
+		let bitmapInfo32 = alphaInfo | floatComponentsFlag
+		bitmapInfo = CGBitmapInfo(rawValue: bitmapInfo32)
+			
+
 		
-		let bytesPerComponent = channels
-		let bytesPerRow = width * bytesPerComponent
+		//	gr: both of these are wrong!
+		//bytesPerComponent = channels
+		//bytesPerRow = width * bytesPerComponent
+		bytesPerComponent = componentType.size
+		bytesPerRow = width * bytesPerComponent * channels
+	}
+	
+	init(width:Int,pixels:[Float],channels:Int) throws
+	{
+		let alignment = pixels.count % channels
+		let height = pixels.count / width / channels
+		if alignment != 0
+		{
+			throw CGImageError("Trying to create CGImage with \(pixels.count) pixels, not aligned to \(channels) channels (miss=\(alignment))")
+		}
+		try self.init(width: width, height: height, channels: channels, componentType: .Float)
+	}
+}
+
+public extension CGImage
+{
+	static func AllocateFloatImage(width:Int,height:Int,channels:Int) throws -> CGImage
+	{
+		let meta = try CGImageMeta(width: width, height: height, channels: channels, componentType: .Float)
+		
 		let ptr : UnsafeMutableRawPointer? = nil
 		let context = CGContext(data: ptr,//UnsafeMutableRawPointer(mutating: ptr.baseAddress!),
 								width: width,
 								height: height,
-								bitsPerComponent: bytesPerComponent*8,
-								bytesPerRow: bytesPerRow,
-								space: colourSpace,
-								bitmapInfo: bitmapInfo)
+								bitsPerComponent: meta.bytesPerComponent*8,
+								bytesPerRow: meta.bytesPerRow,
+								space: meta.colourSpace,
+								bitmapInfo: meta.bitmapInfo)
 		guard let context else
 		{
 			throw CGImageError("Failed to make context")
@@ -673,26 +782,21 @@ public extension CGImage
 		return image
 	}
 
-	static func FromBytes(width:Int,bytes:inout [Float]) throws -> CGImage
+	static func FromBytes(width:Int,pixels:inout [Float],channels:Int) throws -> CGImage
 	{
-		let height = bytes.count / width
-		let colourSpace = CGColorSpaceCreateDeviceGray()
-		
-		let bitmapInfo = CGImageAlphaInfo.none.rawValue | CGBitmapInfo.floatComponents.rawValue
+		let meta = try CGImageMeta(width: width, pixels: pixels, channels: channels)
 
-		return try bytes.withUnsafeMutableBytes 
+		return try pixels.withUnsafeMutableBytes 
 		{
 			buffer in
-			let bytesPerComponent = 4
-			let bytesPerRow = width * bytesPerComponent
 			let ptr = buffer.baseAddress 
 			let context = CGContext(data: ptr,//UnsafeMutableRawPointer(mutating: ptr.baseAddress!),
-									width: width,
-									height: height,
-									bitsPerComponent: bytesPerComponent*8,
-									bytesPerRow: bytesPerRow,
-									space: colourSpace,
-									bitmapInfo: bitmapInfo)
+									width: meta.width,
+									height: meta.height,
+									bitsPerComponent: meta.bytesPerComponent*8,
+									bytesPerRow: meta.bytesPerRow,
+									space: meta.colourSpace,
+									bitmapInfo: meta.bitmapInfo)
 			guard let context else
 			{
 				throw CGImageError("Failed to make context")

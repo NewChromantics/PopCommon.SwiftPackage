@@ -124,7 +124,10 @@ public func CGImageToPixelBuffer(_ cg:CGImage) throws -> CVPixelBuffer
 {
 	try cg.withUnsafePixels 
 	{ 
-		cgImageBytes, width, height, rowStride, pixelFormat in
+		cgImageBytes, imageMeta in
+		let pixelFormat = imageMeta.pixelFormat
+		let width = imageMeta.width
+		let height = imageMeta.height
 		
 		//	allow use in metal
 		let options : [CFString:Any] = 
@@ -145,10 +148,26 @@ public func CGImageToPixelBuffer(_ cg:CGImage) throws -> CVPixelBuffer
 			throw CGImageError("Failed to create \(width)x\(height)(\(format)) pixel buffer; \(GetVideoToolboxError(CreateStatus)) (null)")
 		}
 		
+		let paddedWidth = pixelBuffer.width
+		let paddedHeight = pixelBuffer.height
+		
+		if paddedWidth != imageMeta.rowWidth
+		{
+			throw CGImageError("CVPixelBuffer padded image from \(width) to \(paddedWidth) - handle this")
+		}
+		if paddedHeight != imageMeta.height
+		{
+			//throw CGImageError("CVPixelBuffer padded image height from \(imageMeta.width) to \(paddedHeight) - handle this")
+		}
+		
 		try pixelBuffer.LockMutablePixels
 		{
 			(bytes:UnsafeMutableBufferPointer<UInt8>) in
 			
+			if bytes.count != cgImageBytes.count
+			{
+				print("Data not aligned")
+			}
 			//	expecting colour bytes & format to align
 			//	once format is customisable, change the colour byte array above
 			let destRaw = UnsafeMutableRawBufferPointer(bytes)
