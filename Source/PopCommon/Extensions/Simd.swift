@@ -55,9 +55,17 @@ public extension simd_float4x4
 	init(translation:SIMD3<Float>)
 	{
 		self.init(columns:(vector_float4(1, 0, 0, 0),
-											 vector_float4(0, 1, 0, 0),
-											 vector_float4(0, 0, 1, 0),
-											 vector_float4(translation.x, translation.y, translation.z, 1)))
+						   vector_float4(0, 1, 0, 0),
+						   vector_float4(0, 0, 1, 0),
+						   vector_float4(translation.x, translation.y, translation.z, 1)))
+	}
+	
+	init(scale:SIMD3<Float>)
+	{
+		self.init(columns:(vector_float4(scale.x, 0, 0, 0),
+						   vector_float4(0, scale.y, 0, 0),
+						   vector_float4(0, 0, scale.z, 0),
+						   vector_float4(0, 0, 0, 1)))
 	}
 	
 	init(rotation: Angle, aroundAxis: SIMD3<Float>)
@@ -73,5 +81,26 @@ public extension simd_float4x4
 											 vector_float4(x * z * ci + y * st, y * z * ci - x * st,     ct + z * z * ci, 0),
 											 vector_float4(                  0,                   0,                   0, 1)))
 	}
+	
+	
+	init(translation:simd_float3,pitch:Angle = .degrees(0),yaw:Angle,scale:simd_float3 = .one)
+	{
+		let scaleMatrix = simd_float4x4(scale:scale)
+		let rotationMatrixX = simd_float4x4(rotation: pitch, aroundAxis: SIMD3<Float>(1, 0, 0) )
+		let rotationMatrixY = simd_float4x4(rotation: yaw, aroundAxis: SIMD3<Float>(0, 1, 0) )
+		let translationMatrix = simd_float4x4(translation: translation )
+		let localToWorld = translationMatrix * rotationMatrixY * rotationMatrixX * scaleMatrix
+		self = localToWorld
+	}
+
+	init(translation:simd_float3,rotation:simd_quatf,scale:simd_float3 = .one)
+	{
+		let scaleMatrix = simd_float4x4(scale:scale)
+		let rotationMatrix = simd_float4x4(rotation)
+		let translationMatrix = simd_float4x4(translation: translation )
+		let localToWorld = translationMatrix * rotationMatrix * scaleMatrix
+		self = localToWorld
+	}
+
 }
 
