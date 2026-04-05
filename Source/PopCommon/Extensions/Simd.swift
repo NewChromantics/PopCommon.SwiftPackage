@@ -2,6 +2,62 @@ import simd
 import SwiftUI	//	angle
 
 
+public extension simd_float2
+{
+	var cgSize : CGSize	{	CGSize(width: CGFloat(self.x), height: CGFloat(self.y) )	}
+	var cgPoint : CGPoint	{	CGPoint(x: CGFloat(self.x), y: CGFloat(self.y) )	}
+}
+
+public extension SIMD2
+{
+	var string : String	{	"\(self.x) \(self.y)"	}
+	//	gr: can't use literal values here
+	//var xy0 : SIMD3<Scalar>	{	.init(x,y,0)	}
+	//var xy1 : SIMD3<Scalar>	{	.init(x,y,1)	}
+}
+
+public extension SIMD2<Float>
+{
+	var xy0 : SIMD3<Scalar>	{	.init(x,y,0)	}
+	var xy1 : SIMD3<Scalar>	{	.init(x,y,1)	}
+}
+
+public extension SIMD3
+{
+	var string : String	{	"\(self.x) \(self.y) \(self.z)"	}
+	var xy : SIMD2<Scalar>	{	.init(x,y)	}
+	var xz : SIMD2<Scalar>	{	.init(x,z)	}
+}
+
+public extension SIMD4
+{
+	var string : String	{	"\(self.x) \(self.y) \(self.z) \(self.w)"	}
+}
+
+public extension simd_float3x3
+{
+	var string : String
+	{
+		"[\(columns.0.string)\n\(columns.1.string)\n\(columns.2.string)]"
+	}
+}
+
+public extension simd_float4x4
+{
+	var string : String
+	{
+		"[\(columns.0.string)\n\(columns.1.string)\n\(columns.2.string)\n\(columns.3.string)]"
+	}
+}
+
+public extension simd_double3x3
+{
+	var string : String
+	{
+		"[\(columns.0.string)\n\(columns.1.string)\n\(columns.2.string)]"
+	}
+}
+
 //	swizzles
 public extension simd_float3
 {
@@ -12,9 +68,38 @@ public extension simd_float3
 public extension simd_float4
 {
 	var xyz : simd_float3	{	return simd_float3(x,y,z)	}
+	var xy : simd_float2	{	return simd_float2(x,y)	}
 }
 
+public extension simd_double3
+{
+	var xy : simd_double2	{	return simd_double2(x,y)	}
+}
 
+public extension simd_double4
+{
+	var xyz : simd_double3	{	return simd_double3(x,y,z)	}
+	var xy : simd_double2	{	return simd_double2(x,y)	}
+}
+
+public extension simd_float4x4
+{
+	var topLeft3x3 : simd_float3x3
+	{
+		simd_float3x3( self.columns.0.xyz, self.columns.1.xyz, self.columns.2.xyz )
+	}
+}
+
+public extension simd_float3x3
+{
+	var double3x3 : simd_double3x3
+	{
+		let a = simd_double3(self.columns.0)
+		let b = simd_double3(self.columns.1)
+		let c = simd_double3(self.columns.2)
+		return simd_double3x3(a,b,c)
+	}
+}
 
 public extension simd_float4
 {
@@ -30,6 +115,15 @@ public extension simd_float3x3
 	{
 		simd_float3x3( diagonal: SIMD3<Float>(1,1,1) )
 	}
+	
+	init(_ rowMajor3x3:[Float])
+	{
+		let row0 = SIMD3<Float>( rowMajor3x3[0], rowMajor3x3[1], rowMajor3x3[2] )
+		let row1 = SIMD3<Float>( rowMajor3x3[3], rowMajor3x3[4], rowMajor3x3[5] )
+		let row2 = SIMD3<Float>( rowMajor3x3[6], rowMajor3x3[7], rowMajor3x3[8] )
+		self.init(columns: (row0,row1,row2))
+	}
+	
 }
 
 public extension simd_float4x4

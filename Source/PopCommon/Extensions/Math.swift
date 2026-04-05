@@ -2,6 +2,7 @@
 	Math functions
 */
 import CoreGraphics
+import simd
 
 
 //	get normalised value within these bounds
@@ -18,6 +19,12 @@ public func range(_ min:Float,_ max:Float,value:Float) -> Float
 public func range01(_ min:Float,_ max:Float,value:Float) -> Float
 {
 	return clamp( range(min,max,value:value), min:0, max: 1 )
+}
+
+//	get normalised value within these bounds
+public func range(_ min:simd_float2,_ max:simd_float2,value:simd_float2) -> simd_float2
+{
+	return (value-min) / (max-min)
 }
 
 //	matching simd order!

@@ -430,12 +430,44 @@ extension CGImage
 	 */
 }
 
+public extension OSType
+{
+	var redChannelIndex : Int?
+	{
+		switch self
+		{
+			case kCVPixelFormatType_32ARGB:	return 1
+			default:	return nil
+		}
+	}
+	
+	var greenChannelIndex : Int?
+	{
+		switch self
+		{
+			case kCVPixelFormatType_32ARGB:	return 2
+			default:	return nil
+		}
+	}
+
+	var blueChannelIndex : Int?
+	{
+		switch self
+		{
+			case kCVPixelFormatType_32ARGB:	return 3
+			default:	return nil
+		}
+	}
+}
+
+
 public extension CGImage
 {
 	var dimensions32 : (UInt32,UInt32)	{	(UInt32(self.width),UInt32(self.height))	}
+	var dimensionsCg : CGSize			{	CGSize(width: self.width, height: self.height)	}
 	var sizeBytes : Int		{	self.bytesPerRow * self.height	}
 	
-	public struct ImageMeta
+	struct ImageMeta
 	{
 		public var width : Int
 		public var rowWidth : Int	//	could be padded
@@ -443,9 +475,18 @@ public extension CGImage
 		public var bytesPerPixel : Int
 		public var channels : Int			//	should get/match from pixel format
 		public var pixelFormat : OSType
-		public var bytesPerComponent : Int	{	bytesPerPixel * channels	}
+		public var bytesPerComponent : Int	{	bytesPerPixel / channels	}
 		public var bytesPerRow : Int		{	bytesPerPixel * rowWidth	}
 		public var byteSize : Int			{	bytesPerPixel * rowWidth * height	}
+		
+		//	note: if you're calling this on floats, you'll have to deal with reading properly
+		public func GetPixelChannelByteIndex(x:Int,y:Int,channel:Int) -> Int
+		{
+			let pixel = x + (y*rowWidth)
+			let pixel0Byte = pixel * bytesPerPixel
+			let channelByteOffset = bytesPerComponent * channel
+			return pixel0Byte + channelByteOffset
+		}
 	}
 	
 	public func GetImageMeta() throws -> ImageMeta
