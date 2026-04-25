@@ -2,7 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 import VideoToolbox
 import Accelerate
-
+import simd
 
 public struct CGImageError : LocalizedError
 {
@@ -489,7 +489,7 @@ public extension CGImage
 		}
 	}
 	
-	public func GetImageMeta() throws -> ImageMeta
+	func GetImageMeta() throws -> ImageMeta
 	{
 		let imageCg = self
 		let pixelFormatName = imageCg.pixelFormatName
@@ -558,40 +558,43 @@ public extension CGImage
 		let sourceBuffer = UnsafeBufferPointer<UInt8>( start: sourceData, count: sourceDataSize )
 		return try await callback( sourceBuffer, meta )
 	}
-	/*
+
 	//	for float pixels
-	func withUnsafePixels<Result>(_ callback:(UnsafeBufferPointer<Float>,_ width:Int,_ height:Int,_ rowStride:Int,_ pixelFormat:OSType)async throws->Result) async throws -> Result
+	//	named differently to ease use, dont want to have to always define the type in the closure
+	func withUnsafeFloats<Result>(_ callback:(UnsafeBufferPointer<Float>,_ imageMeta:ImageMeta)throws->Result) throws -> Result
 	{
-		let imageCg = self
-		//let pixelFormatInfo = imageCg.pixelFormatInfo
-		let bitsPerPixel = imageCg.bitsPerPixel
-		let bitsPerComponent = imageCg.bitsPerComponent
-		let bytesPerPixel = bitsPerPixel / bitsPerComponent
-		//let bytesPerPixel2 = imageCg.bytesPerRow / width
-		let rowStride = imageCg.bytesPerRow / bytesPerPixel	//	some images are padded!
-		let channels = bytesPerPixel
-		guard let dataProvider = imageCg.dataProvider else
+		let meta = try self.GetImageMeta()
+		
+		guard let dataProvider = self.dataProvider else
 		{
 			throw CGImageError("Failed to get data provider for image")
 		}
 		guard let pixelData = dataProvider.data else
 		{
 			throw CGImageError("Failed to get data provider.data for image")
-		}			
-		let sourceData : UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
-		let sourceDataSize = CFDataGetLength(pixelData)
-		let pixelFormat = try GetPixelFormat()
-		
-		//	expect alignment
-		if ( channels * rowStride * height != sourceDataSize )
-		{
-			throw CGImageError("Image data vs dimensions misalignment")
 		}
 		
-		let sourceBuffer = UnsafeBufferPointer<UInt8>( start: sourceData, count: sourceDataSize )
-		return try await callback( sourceBuffer, width, height, rowStride, pixelFormat )
+		if !bitmapInfo.contains(.floatComponents)
+		{
+			throw CGImageError("withUnsafePixels<Float> but image is not made of floats (\(self.pixelFormatName))")
+		}
+		
+		let sourceDataBytes : UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
+		let sourceDataSize = CFDataGetLength(pixelData)
+		let floatCount = sourceDataSize / MemoryLayout<Float>.stride
+		let floatPtr = UnsafeRawPointer(sourceDataBytes).assumingMemoryBound(to: Float.self)
+		let sourceFloatBuffer = UnsafeBufferPointer(start: floatPtr, count: floatCount)
+		let pixelFormatName = self.pixelFormatName
+		
+		//	expect alignment
+		if ( meta.byteSize != sourceDataSize )
+		{
+			let byteSize = meta.byteSize
+			throw CGImageError("Image(\(pixelFormatName)) data(\(sourceDataSize)) vs dimensions (\(byteSize)) misalignment")
+		}
+		
+		return try callback( sourceFloatBuffer, meta )
 	}
-	*/
 	
 	//	calculate pixelformat
 	//	using CVPixelPformat to match CVPixelBuffer
@@ -730,6 +733,29 @@ public extension CGImage
 		
 		return data as Data
 	}
+	
+	func ReadPixelFloat(x:Int,y:Int) throws -> Float
+	{
+		return try self.withUnsafeFloats
+		{
+			floats,imageMeta in
+			if x < 0 || x >= imageMeta.width || y < 0 || y >= imageMeta.height
+			{
+				throw CGImageError("ReadPixelFloat(\(x),\(y)) out of bounds (\(imageMeta.width)x\(imageMeta.height))")
+			}
+			let i = (imageMeta.rowWidth * y) + x
+			return floats[i]
+		}
+	}
+	
+	func ReadPixelFloat(uv:simd_float2) throws -> Float
+	{
+		let x = Int( uv.x * Float(width) )
+		let y = Int( uv.y * Float(height) )
+		return try ReadPixelFloat(x:x, y:y)
+	}
+	
+	
 }
 
 
