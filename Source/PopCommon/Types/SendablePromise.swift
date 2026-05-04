@@ -9,6 +9,8 @@
 import Combine
 
 
+//	when using this in a @sendable @escaping closure, the outer variable needs to be
+//	a let to avoid the "captured in sendable" warning/swift6 error
 @available(macOS 12.0, *)
 public class SendablePromise<Result> : @unchecked Sendable
 {
