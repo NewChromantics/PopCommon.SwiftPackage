@@ -37,3 +37,13 @@ public func lerp(_ min:CGFloat,_ max:CGFloat,_ time:CGFloat) -> CGFloat
 {
 	return min + ( (max-min)*time )
 }
+
+public func lerp(min:simd_float2,max:simd_float2,_ time:simd_float2) -> simd_float2
+{
+	return min + ( (max-min)*time )
+}
+
+public func lerp(min:simd_float3,max:simd_float3,_ time:Float) -> simd_float3
+{
+	return min + ( (max-min)*time )
+}
