@@ -1,10 +1,17 @@
 import Foundation 
 
 
-public struct AnyCodable: Codable
-{
+
+
+public struct AnyCodable : Codable
+{	
 	let value: Any
+
 	public var string : String?		{	value as? String	}
+	//public var uint32 : UInt32?		{	value as? UInt32	}
+	public var uint32 : UInt32?		{	int.map{ UInt32($0) }	}
+	public var int : Int?			{	value as? Int	}
+	public var bool : Bool?			{	value as? Bool	}
 	
 	public init(_ value: Any) { self.value = value }
 	
@@ -32,3 +39,22 @@ public struct AnyCodable: Codable
 		}
 	}
 }
+
+extension AnyCodable : Equatable, Hashable
+{
+	public static func == (lhs: Self, rhs: Self) -> Bool
+	{
+		return 	lhs.string == rhs.string && 
+		lhs.uint32 == rhs.uint32 &&
+		lhs.int == rhs.int &&
+		lhs.bool == rhs.bool
+	}
+	
+	public func hash(into hasher: inout Hasher) {
+		hasher.combine(string)
+		hasher.combine(uint32)
+		hasher.combine(int)
+		hasher.combine(bool)
+	}
+}
+	
