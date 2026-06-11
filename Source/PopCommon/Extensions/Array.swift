@@ -29,7 +29,7 @@ public extension Collection
 public extension Sequence where Element : Numeric 
 {
 	//	Returns the sum of all elements in the collection
-	public func sum() -> Element 
+	func sum() -> Element 
 	{
 		return reduce(0, +) 
 	}

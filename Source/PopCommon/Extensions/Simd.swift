@@ -198,3 +198,30 @@ public extension simd_float4x4
 
 }
 
+public extension simd_float3x3
+{
+	init(translation:simd_float2)
+	{
+		self.init(columns:(vector_float3(1, 0, 0),
+						   vector_float3(0, 1, 0),
+						   vector_float3(translation.x, translation.y, 1)
+						   ))
+	}
+	
+	init(scale:simd_float2)
+	{
+		self.init(columns:(vector_float3(scale.x, 0, 0),
+						   vector_float3(0, scale.y, 0),
+						   vector_float3(0, 0, 1)
+						   ))
+	}
+
+	func Transform(_ vec2:simd_float2,w:Float=1) -> simd_float2
+	{
+		let vec3 = simd_float3( vec2.x, vec2.y, w )
+		let out3 = self * vec3
+		let out2 = out3.xy / out3.z
+		return out2
+	}
+}
+
