@@ -19,6 +19,13 @@ public struct ErrorBoxView : View
 		self.onDismiss = onDismiss
 	}
 	
+	public init(_ error:Binding<(any Error)?>,context: String? = nil) 
+	{
+		self.error = error.wrappedValue ?? RuntimeError("ErrorBox view with null error")
+		self.context = context
+		self.onDismiss = { error.wrappedValue = nil }
+	}
+	
 	public var body: some View 
 	{
 		HStack
