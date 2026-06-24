@@ -22,6 +22,12 @@ public class SendablePromise<Result> : @unchecked Sendable
 	public var isErrored : Bool { hasError != nil }
 	public private(set) var hasError : Error? = nil	
 	public private(set) var isResolved : Bool = false
+	public var taskCanceller : (()->Void)?
+	
+	public func CancelTask()
+	{
+		taskCanceller?()
+	}
 	
 	public init()
 	{
@@ -48,6 +54,10 @@ public class SendablePromise<Result> : @unchecked Sendable
 	
 	public func Resolve(_ value:Result)
 	{
+		if isResolved
+		{
+			print("Warning; Resolving already-resolved Sendable promise(with new value \(value))")
+		}
 		self.isResolved = true
 		self.finishedPromise(.success(value))
 	}
