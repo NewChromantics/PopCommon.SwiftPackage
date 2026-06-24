@@ -23,6 +23,36 @@ public extension Collection
 	{
 		indices.contains(index) ? self[index] : nil
 	}
+	
+	
+	//	also allow passing optional indexes!
+	subscript(safe index: Index?) -> Element? 
+	{
+		guard let index else
+		{
+			return nil
+		}
+		return indices.contains(index) ? self[index] : nil
+	}
+	
+	//	run .filter() once to partition items
+	func Split(by predicate:@escaping(Element)->Bool) -> (trues:[Element],falses:[Element])
+	{
+		var trues : [Element] = []
+		var falses : [Element] = []
+		for element in self.lazy.elements
+		{
+			if predicate(element)
+			{
+				trues.append(element)
+			}
+			else
+			{
+				falses.append(element)
+			}
+		}
+		return (trues,falses)
+	}
 }
 
 //	https://stackoverflow.com/a/49046981/355753
