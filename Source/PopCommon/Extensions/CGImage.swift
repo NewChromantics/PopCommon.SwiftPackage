@@ -876,3 +876,39 @@ public extension CGImage
 		}
 	}
 }
+
+
+import CoreGraphics
+import CoreImage
+
+public extension CGImage {
+	/// Applies a high-performance Core Image Gaussian Blur using a specific pixel radius.
+	/// - Parameter radius: The blur footprint radius in pixels. (e.g., 2 creates a 5x5 footprint).
+	/// - Returns: A new, blurred `CGImage`.
+	func gaussianBlur(radius: Int) throws -> CGImage {
+		// 1. Initialize the Core Image context and element wrapper
+		let ciContext = CIContext(options: nil)
+		let inputImage = CIImage(cgImage: self)
+		
+		// 2. Configure the native Gaussian Blur filter
+		guard let filter = CIFilter(name: "CIGaussianBlur") else {
+			throw NSError(domain: "BlurError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to initialize CIGaussianBlur filter"])
+		}
+		
+		filter.setValue(inputImage, forKey: kCIInputImageKey)
+		filter.setValue(Double(radius), forKey: kCIInputRadiusKey)
+		
+		// 3. Prevent black border artifacting by clamping the image boundaries prior to cropping
+		guard let outputImage = filter.outputImage else {
+			throw NSError(domain: "BlurError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Filter output failed"])
+		}
+		
+		// 4. Render the filtered output back into a crisp CGImage bound to your original size dimensions
+		let targetRect = CGRect(x: 0, y: 0, width: self.width, height: self.height)
+		guard let blurredCGImage = ciContext.createCGImage(outputImage, from: targetRect) else {
+			throw NSError(domain: "BlurError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to render target CGImage"])
+		}
+		
+		return blurredCGImage
+	}
+}
