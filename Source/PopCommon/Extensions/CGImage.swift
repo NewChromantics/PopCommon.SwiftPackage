@@ -921,34 +921,69 @@ public extension CGImage
 import CoreGraphics
 import CoreImage
 
+/// Maps a CGImage's bitmapInfo to the closest CIFormat for rendering,
+/// so Core Image preserves the source pixel layout (e.g. greyscale stays greyscale).
+private func ciImageFormat(for bitmapInfo: CGBitmapInfo) -> CIFormat
+{
+	let isFloat = bitmapInfo.contains(.floatComponents)
+	let alphaInfo = CGImageAlphaInfo(rawValue: bitmapInfo.rawValue & CGBitmapInfo.alphaInfoMask.rawValue)
+	let hasAlpha = alphaInfo != CGImageAlphaInfo.none && alphaInfo != .noneSkipLast && alphaInfo != .noneSkipFirst
+
+	switch (isFloat, hasAlpha)
+	{
+		case (false, false):	return .L8		// 8-bit greyscale, no alpha
+		case (false, true):		return .RGBA8	// 8-bit RGBA
+		case (true,  false):	return .Lf		// 32-bit float greyscale
+		case (true,  true):		return .RGBAf	// 32-bit float RGBA
+	}
+}
+
 public extension CGImage {
 	/// Applies a high-performance Core Image Gaussian Blur using a specific pixel radius.
+	/// Preserves the source colour space and pixel format (e.g. greyscale stays greyscale).
 	/// - Parameter radius: The blur footprint radius in pixels. (e.g., 2 creates a 5x5 footprint).
 	/// - Returns: A new, blurred `CGImage`.
-	func gaussianBlur(radius: Int) throws -> CGImage {
+	func gaussianBlur(radius: Int) throws -> CGImage 
+	{
 		// 1. Initialize the Core Image context and element wrapper
 		let ciContext = CIContext(options: nil)
 		let inputImage = CIImage(cgImage: self)
 		
 		// 2. Configure the native Gaussian Blur filter
-		guard let filter = CIFilter(name: "CIGaussianBlur") else {
-			throw NSError(domain: "BlurError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to initialize CIGaussianBlur filter"])
+		guard let filter = CIFilter(name: "CIGaussianBlur") else 
+		{
+			throw CGImageError("Failed to initialize CIGaussianBlur filter")
 		}
 		
 		filter.setValue(inputImage, forKey: kCIInputImageKey)
 		filter.setValue(Double(radius), forKey: kCIInputRadiusKey)
 		
 		// 3. Prevent black border artifacting by clamping the image boundaries prior to cropping
-		guard let outputImage = filter.outputImage else {
-			throw NSError(domain: "BlurError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Filter output failed"])
+		guard let outputImage = filter.outputImage else 
+		{
+			throw CGImageError("Blur on CIContext failed to run filter")
 		}
 		
-		// 4. Render the filtered output back into a crisp CGImage bound to your original size dimensions
 		let targetRect = CGRect(x: 0, y: 0, width: self.width, height: self.height)
-		guard let blurredCGImage = ciContext.createCGImage(outputImage, from: targetRect) else {
-			throw NSError(domain: "BlurError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to render target CGImage"])
+		
+		//	gr: this filter (all filters?) only output/render to RGB, not greyscale
+		//let outputColorSpace = self.colorSpace ?? CGColorSpaceCreateDeviceRGB()
+		//let outputFormat = ciImageFormat(for: self.bitmapInfo)
+		guard let blurredCGImage = ciContext.createCGImage(
+			outputImage,
+			from: targetRect,
+			//format: outputFormat,
+			//colorSpace: outputColorSpace
+		) else
+		{
+			throw CGImageError("Blur on CIContext failed to create CGImage")
 		}
 		
+		if blurredCGImage.height != self.height || blurredCGImage.width != self.width
+		{
+			print("Warning; blur/CIContext has padded output image")
+		}
+			
 		return blurredCGImage
 	}
 }
