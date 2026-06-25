@@ -151,7 +151,7 @@ public func CGImageToPixelBuffer(_ cg:CGImage) throws -> CVPixelBuffer
 		let paddedWidth = pixelBuffer.width
 		let paddedHeight = pixelBuffer.height
 		
-		if paddedWidth != imageMeta.rowWidth
+		if paddedWidth != imageMeta.paddedWidth
 		{
 			throw CGImageError("CVPixelBuffer padded image from \(width) to \(paddedWidth) - handle this")
 		}

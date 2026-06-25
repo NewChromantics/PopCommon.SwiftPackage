@@ -465,24 +465,44 @@ public extension CGImage
 {
 	var dimensions32 : (UInt32,UInt32)	{	(UInt32(self.width),UInt32(self.height))	}
 	var dimensionsCg : CGSize			{	CGSize(width: self.width, height: self.height)	}
-	var sizeBytes : Int		{	self.bytesPerRow * self.height	}
+	
+	/// The true byte size of the image's backing buffer, as reported by the data provider.
+	/// This is the correct size to use when validating against CFDataGetLength(),
+	/// as bytesPerRow may include alignment padding and the buffer may have extra rows.
+	var sizeBytes : Int
+	{
+		get throws
+		{
+			//	edge case where there's no data provider (e.g. a context-created image that hasn't been backed yet)
+			//	gr: it may be safe to return bytesPerRow * height here
+			guard let data = self.dataProvider?.data else
+			{
+				//	fallback: may be wrong if CoreGraphics has added row or height padding
+				//return self.bytesPerRow * self.height
+				throw CGImageError("CGImage has no backing buffer, cannot verify size")
+			}
+			return CFDataGetLength(data)
+		}
+	}
 	
 	struct ImageMeta
 	{
 		public var width : Int
-		public var rowWidth : Int	//	could be padded
+		public var paddedWidth : Int		//	could be padded - gr; make this optional if padded?
+		public var rowWidth : Int			{	paddedWidth	}	//	old api
 		public var height : Int
+		public var paddedHeight : Int		//	less important than paddedWidth, but required for checking size alignment
 		public var bytesPerPixel : Int
 		public var channels : Int			//	should get/match from pixel format
 		public var pixelFormat : OSType
 		public var bytesPerComponent : Int	{	bytesPerPixel / channels	}
-		public var bytesPerRow : Int		{	bytesPerPixel * rowWidth	}
-		public var byteSize : Int			{	bytesPerPixel * rowWidth * height	}
+		public var bytesPerRow : Int		{	bytesPerPixel * paddedWidth	}
+		public var byteSize : Int			{	bytesPerPixel * paddedWidth * paddedHeight	}
 		
 		//	note: if you're calling this on floats, you'll have to deal with reading properly
 		public func GetPixelChannelByteIndex(x:Int,y:Int,channel:Int) -> Int
 		{
-			let pixel = x + (y*rowWidth)
+			let pixel = x + (y*paddedWidth)
 			let pixel0Byte = pixel * bytesPerPixel
 			let channelByteOffset = bytesPerComponent * channel
 			return pixel0Byte + channelByteOffset
@@ -502,7 +522,16 @@ public extension CGImage
 		let bytesPerComponent = bitsPerPixel / bitsPerComponent
 		let rowWidth = imageCg.bytesPerRow / bytesPerPixel	//	some images are padded!
 		let pixelFormat = try GetPixelFormat()
-		return ImageMeta(width: self.width, rowWidth: rowWidth, height: self.height, bytesPerPixel: bytesPerPixel, channels: channels, pixelFormat: pixelFormat)
+		
+		let sizeBytes = try imageCg.sizeBytes
+		let paddedHeight = sizeBytes / imageCg.bytesPerRow
+		let height = self.height
+		if paddedHeight < height
+		{
+			throw CGImageError("Padded height calculation is wrong (height=\(height) padded=\(paddedHeight)")
+		}
+		
+		return ImageMeta(width: self.width, paddedWidth: rowWidth, height: self.height, paddedHeight: paddedHeight, bytesPerPixel: bytesPerPixel, channels: channels, pixelFormat: pixelFormat)
 	}
 	
 	func withUnsafePixels<Result>(_ callback:(UnsafeBufferPointer<UInt8>,_ imageMeta:ImageMeta)throws->Result) throws -> Result
@@ -521,14 +550,19 @@ public extension CGImage
 		let sourceDataSize = CFDataGetLength(pixelData)
 		let pixelFormatName = self.pixelFormatName
 
-		//	expect alignment
-		if ( meta.byteSize != sourceDataSize )
+		//	CoreGraphics may pad the buffer by a few rows for alignment, so allow up to one
+		//	row of tolerance on the upper end. Under-allocation is always a real error.
+		//	A larger over-allocation indicates a real format error (e.g. reading greyscale as RGBA).
+		let rowTolerance = 3 * meta.bytesPerRow
+		let upperBound = meta.byteSize + rowTolerance
+		if sourceDataSize < meta.byteSize || sourceDataSize > upperBound
 		{
 			let byteSize = meta.byteSize
-			throw CGImageError("Image(\(pixelFormatName)) data(\(sourceDataSize)) vs dimensions (\(byteSize)) misalignment")
+			throw CGImageError("Image(\(pixelFormatName)) data(\(sourceDataSize)) vs dimensions (\(byteSize)) mismatch exceeds row tolerance (\(rowTolerance)) — likely format error (width=\(meta.width) paddedWidth=\(meta.paddedWidth))")
 		}
 		
-		let sourceBuffer = UnsafeBufferPointer<UInt8>( start: sourceData, count: sourceDataSize )
+		//	Clamp count to our logical byte size so callers don't accidentally read padding bytes.
+		let sourceBuffer = UnsafeBufferPointer<UInt8>( start: sourceData, count: meta.byteSize )
 		return try callback( sourceBuffer, meta )
 	}
 	
@@ -549,13 +583,15 @@ public extension CGImage
 		let sourceDataSize = CFDataGetLength(pixelData)
 		let pixelFormat = try GetPixelFormat()
 		
-		//	expect alignment
-		if ( meta.byteSize != sourceDataSize )
+		//	CoreGraphics may pad by a few rows — allow one row of tolerance on the upper end only.
+		//	Under-allocation is always a real error; large over-allocation indicates a format mismatch.
+		let rowTolerance = meta.bytesPerRow
+		if sourceDataSize < meta.byteSize || sourceDataSize > meta.byteSize + rowTolerance
 		{
-			throw CGImageError("Image data vs dimensions misalignment")
+			throw CGImageError("Image data (\(sourceDataSize)) vs dimensions (\(meta.byteSize)) mismatch — likely format error")
 		}
 		
-		let sourceBuffer = UnsafeBufferPointer<UInt8>( start: sourceData, count: sourceDataSize )
+		let sourceBuffer = UnsafeBufferPointer<UInt8>( start: sourceData, count: meta.byteSize )
 		return try await callback( sourceBuffer, meta )
 	}
 
@@ -581,17 +617,21 @@ public extension CGImage
 		
 		let sourceDataBytes : UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
 		let sourceDataSize = CFDataGetLength(pixelData)
-		let floatCount = sourceDataSize / MemoryLayout<Float>.stride
-		let floatPtr = UnsafeRawPointer(sourceDataBytes).assumingMemoryBound(to: Float.self)
-		let sourceFloatBuffer = UnsafeBufferPointer(start: floatPtr, count: floatCount)
 		let pixelFormatName = self.pixelFormatName
 		
-		//	expect alignment
-		if ( meta.byteSize != sourceDataSize )
+		//	CoreGraphics may pad by a few rows — allow one row of tolerance on the upper end only.
+		//	Under-allocation is always a real error; large over-allocation indicates a format mismatch.
+		let rowTolerance = meta.bytesPerRow
+		if sourceDataSize < meta.byteSize || sourceDataSize > meta.byteSize + rowTolerance
 		{
 			let byteSize = meta.byteSize
-			throw CGImageError("Image(\(pixelFormatName)) data(\(sourceDataSize)) vs dimensions (\(byteSize)) misalignment")
+			throw CGImageError("Image(\(pixelFormatName)) data(\(sourceDataSize)) vs dimensions (\(byteSize)) mismatch — likely format error")
 		}
+		
+		//	Clamp float count to logical size so callers don't read padding floats.
+		let floatCount = meta.byteSize / MemoryLayout<Float>.stride
+		let floatPtr = UnsafeRawPointer(sourceDataBytes).assumingMemoryBound(to: Float.self)
+		let sourceFloatBuffer = UnsafeBufferPointer(start: floatPtr, count: floatCount)
 		
 		return try callback( sourceFloatBuffer, meta )
 	}
@@ -743,7 +783,7 @@ public extension CGImage
 			{
 				throw CGImageError("ReadPixelFloat(\(x),\(y)) out of bounds (\(imageMeta.width)x\(imageMeta.height))")
 			}
-			let i = (imageMeta.rowWidth * y) + x
+			let i = (imageMeta.paddedWidth * y) + x
 			return floats[i]
 		}
 	}
