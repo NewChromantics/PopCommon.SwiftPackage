@@ -349,7 +349,7 @@ public extension CGRect
 	func cutOriginY(cutPx:CGFloat) -> CGRect
 	{
 		let y = origin.y - cutPx
-		let h = self.height - cutPx
+		//let h = self.height - cutPx
 		return CGRect(minX, y, width: width, height: height)
 	}
 	

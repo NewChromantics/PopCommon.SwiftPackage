@@ -581,7 +581,7 @@ public extension CGImage
 		}			
 		let sourceData : UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
 		let sourceDataSize = CFDataGetLength(pixelData)
-		let pixelFormat = try GetPixelFormat()
+		//let pixelFormat = try GetPixelFormat()
 		
 		//	CoreGraphics may pad by a few rows — allow one row of tolerance on the upper end only.
 		//	Under-allocation is always a real error; large over-allocation indicates a format mismatch.

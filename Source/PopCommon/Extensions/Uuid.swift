@@ -34,7 +34,7 @@ public extension UUID
 			bytes64.withMemoryRebound(to: UInt8.self, capacity: MemoryLayout<uuid_t>.size) 
 			{
 				ptr in
-				var buf = UnsafeMutableBufferPointer<UInt8>(start: ptr,count: 16)
+				let buf = UnsafeMutableBufferPointer<UInt8>(start: ptr,count: 16)
 				bytes.copyBytes(to:buf)
 			}
 		}
