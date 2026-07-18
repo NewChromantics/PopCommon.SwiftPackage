@@ -382,6 +382,40 @@ public extension CVPixelBuffer
 
 extension CVPixelBuffer
 {
+	public func LockPixelsAs<PixelType,ResultType>(_ onLockedPixels:@escaping (UnsafeBufferPointer<PixelType>)throws->ResultType) throws -> ResultType
+	{
+		CVPixelBufferLockBaseAddress( self, [])
+		
+		let PixelRawPointer : UnsafeMutableRawPointer? = CVPixelBufferGetBaseAddress(self)
+		let PixelDataSize = CVPixelBufferGetDataSize(self)
+		guard let PixelRawPointer else
+		{
+			CVPixelBufferUnlockBaseAddress(self, [])
+			throw RuntimeError("Failed to get address of pixels in CVPixelBuffer")
+		}
+		
+		let PixelRawBuffer = PixelRawPointer.bindMemory(to: PixelType.self, capacity: PixelDataSize)
+		let PixelBufferPointer = UnsafeBufferPointer(start: PixelRawBuffer, count: PixelDataSize)
+	
+		var result = try PixelBufferPointer.withUnsafeBufferPointer
+		{
+			pixelsPtr in
+			do
+			{
+				return try onLockedPixels(pixelsPtr)
+			}
+			catch let error
+			{
+				CVPixelBufferUnlockBaseAddress(self, [])
+				throw error
+			}
+		}
+		CVPixelBufferUnlockBaseAddress(self, [])
+		
+		return result
+	}
+	
+	
 	//	withUnsafeBytes style access
 	public func LockPixels(_ onLockedPixels:@escaping (UnsafeRawBufferPointer)throws->Void) throws
 	{
