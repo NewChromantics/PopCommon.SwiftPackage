@@ -37,10 +37,26 @@ public struct TextLinkModifier : ViewModifier
 							.frame(height: 1)
 				}
 			 */
+				.contextMenu
+				{
+					Button(action:OnClickedCopyToClipboard)
+					{
+						Text("Copy url to clipboard")
+					}
+					.disabled(url==nil)
+				}
 		}
 		else
 		{
 			content
+				.contextMenu
+				{
+					Button(action:OnClickedCopyToClipboard)
+					{
+						Text("Copy url to clipboard")
+					}
+					.disabled(url==nil)
+				}
 		}
 	}
 	
@@ -50,6 +66,14 @@ public struct TextLinkModifier : ViewModifier
 		NSWorkspace.shared.activateFileViewerSelecting([url])
 	}
 #endif
+	
+	func OnClickedCopyToClipboard()
+	{
+		if let url
+		{
+			Clipboard.set(url: url)
+		}
+	}
 	
 	func OpenDefaultApplication(url:URL)
 	{
