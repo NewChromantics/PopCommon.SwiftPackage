@@ -47,3 +47,40 @@ public func lerp(min:simd_float3,max:simd_float3,_ time:Float) -> simd_float3
 {
 	return min + ( (max-min)*time )
 }
+
+public func clamp(_ value:Int,min:Int,max:Int) -> Int
+{
+	if value < min
+	{
+		return min
+	}
+	else if value > max
+	{
+		return max
+	}
+	return value
+}
+
+
+//	match CGFloat lerp
+public func lerp(_ min:Double,_ max:Double,_ time:Double) -> Double
+{
+	return min + ( (max-min) * time )
+}
+
+public func lerp(_ min:Float,_ max:Float,_ time:Float) -> Float
+{
+	return min + ( (max-min) * time )
+}
+
+public func Range(min:CGFloat,max:CGFloat,value:CGFloat) -> CGFloat
+{
+	return (value - min) / (max - min)
+}
+
+public func Range(min:Int,max:Int,value:Int) -> CGFloat
+{
+	return Range(min: CGFloat(min), max: CGFloat(max), value: CGFloat(value) )
+}
+
+
