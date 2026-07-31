@@ -2,7 +2,7 @@ import Vision
 import CoreImage
 import CoreImage.CIFilterBuiltins
 import Combine
-
+import CoreGraphicsExtensions
 
 public struct FrameMarker : Identifiable, Codable, Equatable
 {
@@ -249,7 +249,7 @@ public func GetImageMarkers(input:CVPixelBuffer,body:Bool,face:Bool,hands:Bool) 
 	
 	let InputWidth = CVPixelBufferGetWidth(input)
 	let InputHeight = CVPixelBufferGetHeight(input)
-	let InputFormat = CVPixelBufferGetPixelFormatName(pixelBuffer:input)
+	let InputFormat = input.pixelFormatName
 	
 	do
 	{

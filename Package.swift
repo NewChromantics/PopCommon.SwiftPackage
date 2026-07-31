@@ -1,4 +1,4 @@
-// swift-tools-version: 5.8
+// swift-tools-version: 5.9
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 
@@ -11,7 +11,7 @@ let package = Package(
 	
 	platforms: [
 		.iOS(.v15),
-		.macOS(.v10_15)
+		.macOS(.v14)
 	],
 	
 
@@ -23,11 +23,18 @@ let package = Package(
 				//,"PopCommonTests"	this is making projects fail
 			]),
 	],
+	
+	dependencies: [
+		.package(url: "https://github.com/NewChromantics/CoreGraphicsExtensions.SwiftPackage", branch: "main")
+	],
+	
 	targets: [
 
 		.target(
 			name: "PopCommon",
-			dependencies: []
+			dependencies: [
+				.product(name: "CoreGraphicsExtensions", package: "CoreGraphicsExtensions.SwiftPackage")
+			]
 		),
 		.target(
 			name: "PopCommonObjc",

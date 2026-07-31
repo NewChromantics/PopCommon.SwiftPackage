@@ -1,5 +1,6 @@
 import CoreVideo
 import simd
+import CoreGraphicsExtensions
 
 #if !canImport(ARKit)
 public typealias ARSession = ARSessionPolyfill

@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "coregraphicsextensions.swiftpackage",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/NewChromantics/CoreGraphicsExtensions.SwiftPackage",
+      "state" : {
+        "branch" : "main",
+        "revision" : "18ded08ec07353405d0c5981c448ef2e9cd70770"
+      }
+    }
+  ],
+  "version" : 2
+}

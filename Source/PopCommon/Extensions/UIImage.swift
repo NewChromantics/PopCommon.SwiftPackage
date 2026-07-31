@@ -1,5 +1,5 @@
 import SwiftUI
-
+import CoreGraphicsExtensions
 //internal typealias UIImage = NSImage
 
 
