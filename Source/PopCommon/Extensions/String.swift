@@ -83,3 +83,38 @@ public extension Int
 		return gb00
 	}
 }
+
+public extension String 
+{
+	func leftPadded(_ toLength: Int, with character: Character = " ") -> String 
+	{
+		if self.count >= toLength 
+		{
+			return self 
+		}
+		return String(repeating: character, count: toLength - self.count) + self
+	}
+}
+
+public extension BinaryFloatingPoint
+{
+	var oneDecimalPlace : String	
+	{
+		String(format: "%.1f", Float(self) )
+	}
+	
+	var twoDecimalPlaces : String	
+	{
+		String(format: "%.2f", Float(self) )
+	}
+	
+	var threeDecimalPlaces : String	
+	{
+		String(format: "%.3f", Float(self) )
+	}
+	
+	var fourDecimalPlaces : String	
+	{
+		String(format: "%.4f", Float(self) )
+	}
+}
