@@ -35,6 +35,25 @@ public class NSMenuItemWithClosure : NSMenuItem
 		}
 	}
 	
+	//	throwable callback version
+	public convenience init(title: String, keyEquivalent: String="",checked:Bool=false,enabled:Bool=true,icon:String?=nil,OnError:@escaping(any Error)->Void,OnMenuItemSelected:@escaping()async throws->Void)
+	{
+		self.init(title:title, keyEquivalent:keyEquivalent, checked:checked, enabled:enabled, icon:icon)
+		{
+			Task
+			{
+				do
+				{
+					try await OnMenuItemSelected()
+				}
+				catch
+				{
+					OnError(error)
+				}
+			}
+		}
+	}
+
 	required init(coder: NSCoder) 
 	{
 		fatalError("init(coder:) has not been implemented")
