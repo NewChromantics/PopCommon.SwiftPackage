@@ -117,4 +117,11 @@ public extension BinaryFloatingPoint
 	{
 		String(format: "%.4f", Float(self) )
 	}
+	
+	//	0..1 to 0...100%
+	var normalToPercent : String
+	{
+		let percent = Int(self * 100.0)
+		return "\(percent)%"
+	}
 }
