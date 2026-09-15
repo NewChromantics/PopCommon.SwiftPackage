@@ -5,6 +5,13 @@ import UIKit
 //	else using alias
 
 
+#if canImport(UIKit)
+extension UIColor
+{
+	var alphaComponent : CGFloat	{	cgColor.alpha	}
+}
+#endif
+
 public extension UIColor
 {
 	func multiplyAlpha(_ alpha:CGFloat) -> UIColor
@@ -12,4 +19,5 @@ public extension UIColor
 		let alpha = self.alphaComponent * alpha
 		return self.withAlphaComponent(alpha)
 	}
+	
 }

@@ -1,6 +1,6 @@
 #if canImport(AppKit)
 import AppKit
-#endif
+
 
 @available(macOS 11.0, *)
 public extension NSMenu
@@ -64,3 +64,4 @@ public class NSMenuItemWithClosure : NSMenuItem
 		self.closure()
 	}
 }
+#endif
