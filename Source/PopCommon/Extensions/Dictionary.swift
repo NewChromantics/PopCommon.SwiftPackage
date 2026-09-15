@@ -19,4 +19,15 @@ public extension Dictionary
 			removeValue(forKey: key)
 		}
 	}
+	
+	func merged(with dict: [Key: Value]) -> Dictionary
+	{
+		var merged = self
+		for (k, v) in dict 
+		{
+			merged.updateValue(v, forKey: k)
+		}
+		return merged
+	}
 }
+
