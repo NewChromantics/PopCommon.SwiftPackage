@@ -27,16 +27,6 @@ public extension CGContext
 		self.restoreGState()
 	}
 	
-	func DrawFlipped(_ image: CGImage, in rect: CGRect) 
-	{
-		DrawAndRestoreState
-		{
-			self.translateBy(x: 0, y: rect.origin.y + rect.height)
-			self.scaleBy(x: 1.0, y: -1.0)
-			self.draw(image, in: CGRect(origin: CGPoint(x: rect.origin.x, y: 0), size: rect.size))
-		}
-	}
-	
 	func DrawAndRestoreState(draw:()->Void)
 	{
 		saveGState()
